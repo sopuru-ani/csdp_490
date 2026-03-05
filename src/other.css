@@ -3,37 +3,42 @@
 
 /* ============================================================
    LOSTLINK — Campus Clean Theme
-   Blue (primary) + Amber (secondary/accent)
    Color variables only. Light & dark mode.
    All names are semantic — not tied to actual color values.
    ============================================================ */
 
 @theme {
+  /* --- Primary --- */
   --color-primary: var(--color-primary);
   --color-primary-soft: var(--color-primary-soft);
   --color-primary-hover: var(--color-primary-hover);
   --color-primary-muted: var(--color-primary-muted);
 
+  /* --- Secondary --- */
   --color-secondary: var(--color-secondary);
   --color-secondary-soft: var(--color-secondary-soft);
   --color-secondary-hover: var(--color-secondary-hover);
   --color-secondary-muted: var(--color-secondary-muted);
 
+  /* --- Backgrounds --- */
   --color-bg: var(--color-bg);
   --color-bg-raised: var(--color-bg-raised);
   --color-bg-sunken: var(--color-bg-sunken);
   --color-bg-overlay: var(--color-bg-overlay);
 
+  /* --- Borders --- */
   --color-border: var(--color-border);
   --color-border-strong: var(--color-border-strong);
   --color-border-focus: var(--color-border-focus);
 
+  /* --- Text --- */
   --color-text: var(--color-text);
   --color-text-secondary: var(--color-text-secondary);
   --color-text-muted: var(--color-text-muted);
   --color-text-inverse: var(--color-text-inverse);
   --color-text-link: var(--color-text-link);
 
+  /* --- Feedback --- */
   --color-success: var(--color-success);
   --color-success-soft: var(--color-success-soft);
   --color-warning: var(--color-warning);
@@ -45,22 +50,22 @@
 }
 
 :root {
-  /* --- Primary (Blue) --- */
+  /* --- Primary --- */
   --color-primary: #3b82f6;
   --color-primary-soft: #eff6ff;
   --color-primary-hover: #2563eb;
   --color-primary-muted: #bfdbfe;
 
-  /* --- Secondary (Amber) --- */
-  --color-secondary: #f59e0b;
-  --color-secondary-soft: #fffbeb;
-  --color-secondary-hover: #d97706;
-  --color-secondary-muted: #fde68a;
+  /* --- Secondary --- */
+  --color-secondary: #10b981;
+  --color-secondary-soft: #ecfdf5;
+  --color-secondary-hover: #059669;
+  --color-secondary-muted: #a7f3d0;
 
   /* --- Backgrounds --- */
-  --color-bg: #f8faff;
+  --color-bg: #f0f7ff;
   --color-bg-raised: #ffffff;
-  --color-bg-sunken: #eef2f9;
+  --color-bg-sunken: #e2eef9;
   --color-bg-overlay: #ffffffcc;
 
   /* --- Borders --- */
@@ -76,8 +81,8 @@
   --color-text-link: #2563eb;
 
   /* --- Feedback --- */
-  --color-success: #22c55e;
-  --color-success-soft: #f0fdf4;
+  --color-success: #10b981;
+  --color-success-soft: #ecfdf5;
   --color-warning: #f59e0b;
   --color-warning-soft: #fffbeb;
   --color-danger: #ef4444;
@@ -87,17 +92,17 @@
 }
 
 .dark {
-  /* --- Primary (Blue) --- */
+  /* --- Primary --- */
   --color-primary: #60a5fa;
   --color-primary-soft: #1e3a5f;
   --color-primary-hover: #93c5fd;
   --color-primary-muted: #1d4ed840;
 
-  /* --- Secondary (Amber) --- */
-  --color-secondary: #fbbf24;
-  --color-secondary-soft: #451a03;
-  --color-secondary-hover: #fcd34d;
-  --color-secondary-muted: #92400e40;
+  /* --- Secondary --- */
+  --color-secondary: #34d399;
+  --color-secondary-soft: #064e3b;
+  --color-secondary-hover: #6ee7b7;
+  --color-secondary-muted: #065f4640;
 
   /* --- Backgrounds --- */
   --color-bg: #0c1526;
@@ -118,8 +123,8 @@
   --color-text-link: #60a5fa;
 
   /* --- Feedback --- */
-  --color-success: #4ade80;
-  --color-success-soft: #052e16;
+  --color-success: #34d399;
+  --color-success-soft: #064e3b;
   --color-warning: #fbbf24;
   --color-warning-soft: #451a03;
   --color-danger: #f87171;
