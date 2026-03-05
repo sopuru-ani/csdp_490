@@ -1,10 +1,11 @@
-import React from "react";
+import { Link } from "react-router-dom";
+import AppRoutes from "./routes/AppRoutes";
 
 function App() {
   return (
-    <div>
-      This is our fully working and ready to ship AI lost and found tracker
-    </div>
+    <>
+      <AppRoutes />
+    </>
   );
 }
 
