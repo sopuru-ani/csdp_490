@@ -4,14 +4,26 @@ import { LocateIcon } from "lucide-react";
 
 function Login() {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   return (
     <>
       <div className="w-dvw min-h-dvh h-auto flex flex-col justify-center items-center p-4 bg-primary-soft">
-        <div className="w-full max-w-150 p-4 rounded-md flex flex-col gap-6">
+        <div className="w-full max-w-150 p-4 rounded-md flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             <p className="font-bold text-2xl">Welcome Back</p>
             <p>Login to view lost and found items</p>
           </div>
+          {error && (
+            <p className="px-3 py-2 bg-danger-soft border-l-4 border-danger">
+              {error}
+            </p>
+          )}
+          {success && (
+            <p className="px-3 py-2 bg-success-soft border-l-4 border-success">
+              {success}
+            </p>
+          )}
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-1">
               <label htmlFor="email" className="text-sm">
