@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { ArrowRight, LocateIcon, ArrowLeftCircleIcon } from "lucide-react";
+import {
+  ArrowRight,
+  LocateIcon,
+  ArrowLeftCircleIcon,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 
 function Signup() {
@@ -10,6 +16,7 @@ function Signup() {
   const [firstLoad, setFirstLoad] = useState(false);
   const [secondLoad, setSecondLoad] = useState(false);
   const [emailHover, setEmailHover] = useState(false);
+  const [hidePassword, setHidePassword] = useState(true);
 
   function isAuthorizedFunction() {
     setFirstLoad(true);
@@ -30,6 +37,12 @@ function Signup() {
         <div className="w-full max-w-150 p-4 rounded-md flex flex-col gap-4">
           {!isAuthorized && (
             <>
+              <div className="flex flex-col items-center gap-1">
+                <p className="font-bold text-2xl text-secondary">
+                  Create Account
+                </p>
+                <p>Enter your email to continue</p>
+              </div>
               {error && (
                 <p className="px-3 py-2 bg-danger-soft border-l-4 border-danger">
                   {error}
@@ -139,12 +152,25 @@ function Signup() {
                   <label htmlFor="password" className="text-sm">
                     Password
                   </label>
-                  <input
-                    type="text"
-                    id="password"
-                    placeholder=""
-                    className="outline-none px-3 py-3 rounded-lg bg-white focus:bg-secondary-soft border border-gray-300 ring-gray-300 focus:ring-1 text-sm"
-                  />
+                  <div className="relative">
+                    <input
+                      type={hidePassword ? "password" : "text"}
+                      id="password"
+                      placeholder=""
+                      className="outline-none px-3 py-3 rounded-lg bg-white focus:bg-secondary-soft border border-gray-300 ring-gray-300 focus:ring-1 text-sm w-full pr-10"
+                    />
+                    {hidePassword ? (
+                      <EyeOff
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6 cursor-pointer"
+                        onClick={() => setHidePassword(!hidePassword)}
+                      />
+                    ) : (
+                      <Eye
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6 cursor-pointer"
+                        onClick={() => setHidePassword(!hidePassword)}
+                      />
+                    )}
+                  </div>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label htmlFor="confirmPassword" className="text-sm">
