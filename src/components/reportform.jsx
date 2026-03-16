@@ -1,0 +1,466 @@
+import { useState, useRef } from "react";
+import {
+  ArrowRight,
+  Upload,
+  Image as ImageIcon,
+  CalendarIcon,
+  ChevronDown,
+} from "lucide-react";
+import { format } from "date-fns";
+
+// shadcn components
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const CATEGORIES = [
+  "Bags",
+  "Electronics",
+  "Clothing",
+  "Keys",
+  "ID / Cards",
+  "Books",
+  "Jewelry",
+  "Other",
+];
+
+function ReportForm({ type = "lost" }) {
+  const isLost = type === "lost";
+
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    location: "",
+    category: "",
+  });
+
+  // Date state — using Date objects for shadcn Calendar
+  const [dateFrom, setDateFrom] = useState(null);
+  const [dateTo, setDateTo] = useState(null);
+  const [date, setDate] = useState(null);
+
+  // Popover open states
+  const [dateFromOpen, setDateFromOpen] = useState(false);
+  const [dateToOpen, setDateToOpen] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
+
+  const [image, setImage] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleImage = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image must be under 5MB.");
+      return;
+    }
+    setImage(file);
+    setPreview(URL.createObjectURL(file));
+    setError("");
+  };
+
+  const removeImage = () => {
+    setImage(null);
+    setPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const validate = () => {
+    const newErrors = {};
+    if (!form.title || form.title.trim().length < 3)
+      newErrors.title = "Title must be at least 3 characters.";
+    if (!form.category) newErrors.category = "Please select a category.";
+    if (!form.description || form.description.trim().length < 10)
+      newErrors.description = "Description must be at least 10 characters.";
+    if (!form.location || form.location.trim().length < 3)
+      newErrors.location = "Please enter a location.";
+    if (isLost && !dateFrom) newErrors.dateFrom = "Please select a date.";
+    if (!isLost && !date) newErrors.date = "Please select the date found.";
+    return newErrors;
+  };
+
+  const handleSubmit = () => {
+    setError("");
+    setSuccess("");
+    const newErrors = validate();
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setError("Please fix the errors below before submitting.");
+      return;
+    }
+    setErrors({});
+    setLoading(true);
+    // Wire to Supabase here later
+    setTimeout(() => {
+      setLoading(false);
+      setSuccess(
+        isLost
+          ? "Your lost item report has been submitted. We'll notify you if a match is found."
+          : "Your found item report has been submitted. The owner will be notified.",
+      );
+    }, 1000);
+  };
+
+  const inputClass = (field) =>
+    `outline-none px-3 py-3 rounded-lg bg-white focus:bg-secondary-soft border ${
+      errors[field] ? "border-danger" : "border-gray-300"
+    } ring-gray-300 focus:ring-1 text-sm w-full`;
+
+  // Shared style for the date trigger button
+  const dateTriggerClass = (field, hasValue) =>
+    `flex items-center justify-between w-full px-3 py-3 rounded-lg bg-white border ${
+      errors[field] ? "border-danger" : "border-gray-300"
+    } ring-gray-300 hover:bg-secondary-soft focus:ring-1 text-sm cursor-pointer transition-colors`;
+
+  return (
+    <div className="w-full min-h-screen flex flex-col justify-center items-center p-4 bg-primary-soft ">
+      <div className="w-full max-w-150 p-4 rounded-md flex flex-col gap-4">
+        {/* Header */}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span
+              className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                isLost
+                  ? "bg-danger-soft text-danger"
+                  : "bg-success-soft text-success"
+              }`}
+            >
+              {isLost ? "Lost Item" : "Found Item"}
+            </span>
+          </div>
+          <p className="font-bold text-2xl">
+            {isLost ? "Report a Lost Item" : "Report a Found Item"}
+          </p>
+          <p className="text-sm text-text-secondary">
+            {isLost
+              ? "Fill in the details below and we'll try to find a match for you."
+              : "Let us know what you found so we can help return it to its owner."}
+          </p>
+        </div>
+
+        {/* Global error / success */}
+        {error && (
+          <p className="px-3 py-2 bg-danger-soft border-l-4 border-danger text-sm">
+            {error}
+          </p>
+        )}
+        {success && (
+          <p className="px-3 py-2 bg-success-soft border-l-4 border-success text-sm">
+            {success}
+          </p>
+        )}
+
+        {/* Fields */}
+        <div className="flex flex-col gap-3">
+          {/* Item Title */}
+          <div className="flex flex-col gap-1">
+            <label htmlFor="title" className="text-sm">
+              Item Title
+            </label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={form.title}
+              onChange={handleChange}
+              placeholder="e.g. Blue JanSport Backpack"
+              className={inputClass("title")}
+            />
+            {errors.title && (
+              <p className="text-danger text-xs">{errors.title}</p>
+            )}
+          </div>
+
+          {/* Category — shadcn Select */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm">Category</label>
+            <Select
+              value={form.category}
+              onValueChange={(val) =>
+                setForm((prev) => ({ ...prev, category: val }))
+              }
+            >
+              <SelectTrigger
+                className={`h-auto p-3 rounded-lg bg-white border ${
+                  errors.category ? "border-danger" : "border-gray-300"
+                } ring-gray-300 focus:ring-1 focus-visible:ring-1 text-sm border-gray-300 hover:bg-secondary-soft transition-colors`}
+              >
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.category && (
+              <p className="text-danger text-xs">{errors.category}</p>
+            )}
+          </div>
+
+          {/* Description */}
+          <div className="flex flex-col gap-1">
+            <label htmlFor="description" className="text-sm">
+              Description
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              rows={4}
+              placeholder="Describe the item — color, brand, any distinguishing marks..."
+              className={`${inputClass("description")} resize-none`}
+            />
+            <div className="flex justify-between items-center">
+              {errors.description ? (
+                <p className="text-danger text-xs">{errors.description}</p>
+              ) : (
+                <span />
+              )}
+              <p className="text-xs text-text-muted ml-auto">
+                {form.description.length} chars
+              </p>
+            </div>
+          </div>
+
+          {/* Approximate Location */}
+          <div className="flex flex-col gap-1">
+            <label htmlFor="location" className="text-sm">
+              Approximate Location
+            </label>
+            <input
+              type="text"
+              id="location"
+              name="location"
+              value={form.location}
+              onChange={handleChange}
+              placeholder="e.g. Library 2nd floor, near study rooms"
+              className={inputClass("location")}
+            />
+            <p className="text-xs text-text-muted">
+              General area only — no exact location needed.
+            </p>
+            {errors.location && (
+              <p className="text-danger text-xs">{errors.location}</p>
+            )}
+          </div>
+
+          {/* Date Fields — shadcn Popover + Calendar */}
+          {isLost ? (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm">Date Lost</label>
+              <div className="grid grid-cols-2 gap-3">
+                {/* From date */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-text-muted">From</label>
+                  <Popover open={dateFromOpen} onOpenChange={setDateFromOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        className={dateTriggerClass("dateFrom", !!dateFrom)}
+                      >
+                        <span
+                          className={dateFrom ? "text-text" : "text-gray-400"}
+                        >
+                          {dateFrom
+                            ? format(dateFrom, "MMM d, yyyy")
+                            : "Pick a date"}
+                        </span>
+                        <CalendarIcon className="w-4 h-4 text-text-muted" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dateFrom}
+                        onSelect={(d) => {
+                          setDateFrom(d);
+                          setDateFromOpen(false);
+                          // reset dateTo if it's before the new dateFrom
+                          if (dateTo && d && dateTo < d) setDateTo(null);
+                        }}
+                        disabled={(d) => d > new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {errors.dateFrom && (
+                    <p className="text-danger text-xs">{errors.dateFrom}</p>
+                  )}
+                </div>
+
+                {/* To date */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-text-muted">
+                    To (optional)
+                  </label>
+                  <Popover open={dateToOpen} onOpenChange={setDateToOpen}>
+                    <PopoverTrigger asChild>
+                      <button className={dateTriggerClass("dateTo", !!dateTo)}>
+                        <span
+                          className={dateTo ? "text-text" : "text-gray-400"}
+                        >
+                          {dateTo
+                            ? format(dateTo, "MMM d, yyyy")
+                            : "Pick a date"}
+                        </span>
+                        <CalendarIcon className="w-4 h-4 text-text-muted" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dateTo}
+                        onSelect={(d) => {
+                          setDateTo(d);
+                          setDateToOpen(false);
+                        }}
+                        disabled={(d) =>
+                          d > new Date() || (dateFrom ? d < dateFrom : false)
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm">Date Found</label>
+              <Popover open={dateOpen} onOpenChange={setDateOpen}>
+                <PopoverTrigger asChild>
+                  <button className={dateTriggerClass("date", !!date)}>
+                    <span className={date ? "text-text" : "text-gray-400"}>
+                      {date ? format(date, "MMM d, yyyy") : "Pick a date"}
+                    </span>
+                    <CalendarIcon className="w-4 h-4 text-text-muted" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={(d) => {
+                      setDate(d);
+                      setDateOpen(false);
+                    }}
+                    disabled={(d) => d > new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              {errors.date && (
+                <p className="text-danger text-xs">{errors.date}</p>
+              )}
+            </div>
+          )}
+
+          {/* Image Upload */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm">
+              Photo{" "}
+              <span className="text-text-muted font-normal">(optional)</span>
+            </label>
+
+            {!preview ? (
+              <label
+                htmlFor="image"
+                className="flex flex-col items-center justify-center gap-2 px-3 py-6 rounded-lg bg-white border border-dashed border-gray-300 hover:bg-secondary-soft hover:border-secondary cursor-pointer transition-colors"
+              >
+                <Upload className="w-5 h-5 text-text-muted" />
+                <span className="text-sm text-text-muted">
+                  Click to upload a photo
+                </span>
+                <span className="text-xs text-text-muted">
+                  PNG, JPG, WEBP — max 5MB
+                </span>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  id="image"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handleImage}
+                  className="hidden"
+                />
+              </label>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <div className="rounded-lg overflow-hidden border border-gray-300">
+                  <img
+                    src={preview}
+                    alt="Preview"
+                    className="w-full h-44 object-cover"
+                  />
+                </div>
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-text-muted" />
+                    <p className="text-xs text-text-muted truncate max-w-60">
+                      {image?.name}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="text-xs text-danger hover:underline cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Submit */}
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="px-4 py-3 rounded-lg bg-secondary hover:bg-secondary-hover cursor-pointer text-white flex items-center justify-center gap-2 disabled:opacity-60"
+        >
+          {isLost ? "Submit Lost Report" : "Submit Found Report"}
+          {loading ? (
+            <div className="border-white border-3 border-t-0 border-b-0 rounded-full w-4 h-4 animate-spin" />
+          ) : (
+            <ArrowRight className="w-4 h-4" />
+          )}
+        </button>
+
+        <p className="text-center text-sm">
+          Changed your mind?{" "}
+          <a
+            href="/dashboard"
+            className="text-secondary hover:text-secondary-hover"
+          >
+            Go back to dashboard
+          </a>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default ReportForm;

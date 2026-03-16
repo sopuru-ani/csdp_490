@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   ArrowRight,
   LocateIcon,
@@ -24,7 +24,6 @@ function Signup() {
   const [hidePassword, setHidePassword] = useState(true);
   const [hideConfirmPassword, setHideConfirmPassword] = useState(true);
   const [hasStartedPasswordInput, setHasStartedPasswordInput] = useState(false);
-  const emailHoverTimeoutRef = useRef(null);
 
   const passwordRequirements = {
     minLength: password.length >= 8,
@@ -89,25 +88,6 @@ function Signup() {
     setSuccess("Password verified. You can now create your account.");
     setSecondLoad(false);
   }
-
-  function triggerEmailHoverBounce() {
-    setEmailHover(true);
-    if (emailHoverTimeoutRef.current) {
-      clearTimeout(emailHoverTimeoutRef.current);
-    }
-    emailHoverTimeoutRef.current = setTimeout(() => {
-      setEmailHover(false);
-    }, 1000);
-  }
-
-  useEffect(() => {
-    return () => {
-      if (emailHoverTimeoutRef.current) {
-        clearTimeout(emailHoverTimeoutRef.current);
-      }
-    };
-  }, []);
-
   return (
     <>
       <div className="w-dvw min-h-dvh h-auto flex flex-col justify-center items-center p-4 bg-primary-soft">
@@ -215,7 +195,6 @@ function Signup() {
                   <div
                     onMouseEnter={() => setEmailHover(true)}
                     onMouseLeave={() => setEmailHover(false)}
-                    onTouchStart={triggerEmailHoverBounce}
                   >
                     <input
                       type="text"
