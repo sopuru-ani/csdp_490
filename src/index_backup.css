@@ -1,0 +1,135 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+
+/* ============================================================
+   LOSTLINK — Campus Clean Theme
+   Blue (primary) + Amber (secondary/accent)
+   Color variables only. Light & dark mode.
+   All names are semantic — not tied to actual color values.
+   ============================================================ */
+
+@theme {
+  --color-primary: var(--color-primary);
+  --color-primary-soft: var(--color-primary-soft);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-muted: var(--color-primary-muted);
+
+  --color-secondary: var(--color-secondary);
+  --color-secondary-soft: var(--color-secondary-soft);
+  --color-secondary-hover: var(--color-secondary-hover);
+  --color-secondary-muted: var(--color-secondary-muted);
+
+  --color-bg: var(--color-bg);
+  --color-bg-raised: var(--color-bg-raised);
+  --color-bg-sunken: var(--color-bg-sunken);
+  --color-bg-overlay: var(--color-bg-overlay);
+
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-border-focus: var(--color-border-focus);
+
+  --color-text: var(--color-text);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-inverse: var(--color-text-inverse);
+  --color-text-link: var(--color-text-link);
+
+  --color-success: var(--color-success);
+  --color-success-soft: var(--color-success-soft);
+  --color-warning: var(--color-warning);
+  --color-warning-soft: var(--color-warning-soft);
+  --color-danger: var(--color-danger);
+  --color-danger-soft: var(--color-danger-soft);
+  --color-info: var(--color-info);
+  --color-info-soft: var(--color-info-soft);
+}
+
+:root {
+  /* --- Primary (Blue) --- */
+  --color-primary: #3b82f6;
+  --color-primary-soft: #eff6ff;
+  --color-primary-hover: #2563eb;
+  --color-primary-muted: #bfdbfe;
+
+  /* --- Secondary (Amber) --- */
+  --color-secondary: #f59e0b;
+  --color-secondary-soft: #fffbeb;
+  --color-secondary-hover: #d97706;
+  --color-secondary-muted: #fde68a;
+
+  /* --- Backgrounds --- */
+  --color-bg: #f8faff;
+  --color-bg-raised: #ffffff;
+  --color-bg-sunken: #eef2f9;
+  --color-bg-overlay: #ffffffcc;
+
+  /* --- Borders --- */
+  --color-border: #cbd5e1;
+  --color-border-strong: #94a3b8;
+  --color-border-focus: #3b82f6;
+
+  /* --- Text --- */
+  --color-text: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
+  --color-text-inverse: #ffffff;
+  --color-text-link: #2563eb;
+
+  /* --- Feedback --- */
+  --color-success: #22c55e;
+  --color-success-soft: #f0fdf4;
+  --color-warning: #f59e0b;
+  --color-warning-soft: #fffbeb;
+  --color-danger: #ef4444;
+  --color-danger-soft: #fef2f2;
+  --color-info: #3b82f6;
+  --color-info-soft: #eff6ff;
+}
+
+.dark {
+  /* --- Primary (Blue) --- */
+  --color-primary: #60a5fa;
+  --color-primary-soft: #1e3a5f;
+  --color-primary-hover: #93c5fd;
+  --color-primary-muted: #1d4ed840;
+
+  /* --- Secondary (Amber) --- */
+  --color-secondary: #fbbf24;
+  --color-secondary-soft: #451a03;
+  --color-secondary-hover: #fcd34d;
+  --color-secondary-muted: #92400e40;
+
+  /* --- Backgrounds --- */
+  --color-bg: #0c1526;
+  --color-bg-raised: #111e33;
+  --color-bg-sunken: #091020;
+  --color-bg-overlay: #111e33cc;
+
+  /* --- Borders --- */
+  --color-border: #1e2d45;
+  --color-border-strong: #2d4a6e;
+  --color-border-focus: #60a5fa;
+
+  /* --- Text --- */
+  --color-text: #e2e8f0;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #475569;
+  --color-text-inverse: #0f172a;
+  --color-text-link: #60a5fa;
+
+  /* --- Feedback --- */
+  --color-success: #4ade80;
+  --color-success-soft: #052e16;
+  --color-warning: #fbbf24;
+  --color-warning-soft: #451a03;
+  --color-danger: #f87171;
+  --color-danger-soft: #450a0a;
+  --color-info: #60a5fa;
+  --color-info-soft: #1e3a5f;
+}
+
+@layer base {
+  body {
+    font-family: "Plus Jakarta Sans", sans-serif;
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    // set the baseUrl to the source folder so that absolute imports
+    // like `import Foo from '@/components/Foo'` resolve correctly
+    // `baseUrl` is deprecated in TS 6+, silence the warning until 7.0.
+    "ignoreDeprecations": "6.0",
+    "baseUrl": "src",
+    "paths": {
+      "@/*": ["*"]
+    }
+  },
+  // include the src directory explicitly so the TS/JS language
+  // service picks up all files under it.
+  "include": ["src"]
+}
