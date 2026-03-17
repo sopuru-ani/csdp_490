@@ -297,12 +297,19 @@ def create_found_item(
     
 @app.get("/items/mine")
 def get_my_items(current_user=Depends(get_current_user)):
-    return {
-        "message": "Authenticated route works",
-        "user_id": current_user["id"],
-        "email": current_user["email"],
-        "is_admin": current_user["is_admin"]
-    }
+    try:
+        response = db_supabase.table("items") \
+            .select("*") \
+            .eq("user_id", current_user["id"]) \
+            .order("created_at", desc=True) \
+            .execute()
+
+        return {
+            "items": response.data
+        }
+    except Exception as e:
+        print("GET MY ITEMS ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/items/upload")
 async def upload_item_images(

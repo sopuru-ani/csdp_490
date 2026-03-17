@@ -7,6 +7,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 // shadcn components
 import {
@@ -61,6 +62,7 @@ function ReportForm({ type = "lost" }) {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -160,6 +162,8 @@ function ReportForm({ type = "lost" }) {
           ? "Your lost item report has been submitted. We'll notify you if a match is found."
           : "Your found item report has been submitted. The owner will be notified.",
       );
+
+      setTimeout(() => navigate("/dashboard"), 5000);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -484,7 +488,7 @@ function ReportForm({ type = "lost" }) {
         {/* Submit */}
         <button
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={loading || !!success}
           className="px-4 py-3 rounded-lg bg-secondary hover:bg-secondary-hover cursor-pointer text-white flex items-center justify-center gap-2 disabled:opacity-60"
         >
           {isLost ? "Submit Lost Report" : "Submit Found Report"}

@@ -12,7 +12,7 @@ import { Link } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 
 function Signup() {
-  const [firstname, setFirstname] = useState("");
+  const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,6 +66,11 @@ function Signup() {
   }
 
   async function verifyPasswordFunction() {
+    //  console.log("email:", email);
+    //  console.log("password:", password);
+    //  console.log("firstName:", firstName);
+    //  console.log("lastName:", lastName);
+
     setSecondLoad(true);
     setError("");
     setSuccess("");
@@ -226,8 +231,8 @@ function Signup() {
                     type="text"
                     id="firstName"
                     placeholder="John"
-                    value={firstname}
-                    onChange={(e) => setFirstname(e.target.value)}
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
                     className="outline-none px-3 py-3 rounded-lg bg-white focus:bg-secondary-soft border border-gray-300 ring-gray-300 focus:ring-1 text-sm"
                   />
                 </div>
