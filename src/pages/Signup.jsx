@@ -12,6 +12,8 @@ import { Link } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 
 function Signup() {
+  const [firstname, setFirstname] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -63,10 +65,16 @@ function Signup() {
     return;
   }
 
-  function verifyPasswordFunction() {
+  async function verifyPasswordFunction() {
     setSecondLoad(true);
     setError("");
     setSuccess("");
+
+    if (!firstName || !lastName) {
+      setError("Please enter your first and last name.");
+      setSecondLoad(false);
+      return;
+    }
 
     if (!password) {
       setError("Enter your password");
@@ -86,8 +94,32 @@ function Signup() {
       return;
     }
 
-    setSuccess("Password verified. You can now create your account.");
-    setSecondLoad(false);
+    try {
+      const res = await fetch("http://localhost:8000/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          first_name: firstName,
+          last_name: lastName,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || "Signup failed");
+      }
+
+      setSuccess(
+        "Account created! Please check your email to confirm your account.",
+      );
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSecondLoad(false);
+    }
   }
 
   function triggerEmailHoverBounce() {
@@ -194,6 +226,8 @@ function Signup() {
                     type="text"
                     id="firstName"
                     placeholder="John"
+                    value={firstname}
+                    onChange={(e) => setFirstname(e.target.value)}
                     className="outline-none px-3 py-3 rounded-lg bg-white focus:bg-secondary-soft border border-gray-300 ring-gray-300 focus:ring-1 text-sm"
                   />
                 </div>
@@ -205,6 +239,8 @@ function Signup() {
                     type="text"
                     id="lastName"
                     placeholder="Kaisen"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
                     className="outline-none px-3 py-3 rounded-lg bg-white focus:bg-secondary-soft border border-gray-300 ring-gray-300 focus:ring-1 text-sm"
                   />
                 </div>
