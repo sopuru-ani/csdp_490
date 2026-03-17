@@ -7,6 +7,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 // shadcn components
 import {
@@ -61,6 +62,7 @@ function ReportForm({ type = "lost" }) {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -99,7 +101,7 @@ function ReportForm({ type = "lost" }) {
     return newErrors;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setError("");
     setSuccess("");
     const newErrors = validate();
@@ -110,15 +112,63 @@ function ReportForm({ type = "lost" }) {
     }
     setErrors({});
     setLoading(true);
-    // Wire to Supabase here later
-    setTimeout(() => {
-      setLoading(false);
+
+    try {
+      // Step 1: Upload image if one was selected
+      let imagePaths = [];
+      if (image) {
+        const formData = new FormData();
+        formData.append("files", image);
+
+        const uploadRes = await fetch("http://localhost:8000/items/upload", {
+          method: "POST",
+          credentials: "include", // sends your auth cookie
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          const err = await uploadRes.json();
+          throw new Error(err.detail || "Image upload failed");
+        }
+
+        const uploadData = await uploadRes.json();
+        imagePaths = uploadData.paths;
+      }
+
+      // Step 2: Submit the item report with the returned image paths
+      const itemRes = await fetch(`http://localhost:8000/items/${type}`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          item_name: form.title,
+          description: form.description,
+          location: form.location,
+          category: form.category,
+          date_lost_from: dateFrom ? dateFrom.toISOString() : null,
+          date_lost_to: dateTo ? dateTo.toISOString() : null,
+          date_found: date ? date.toISOString() : null,
+          image_paths: imagePaths,
+        }),
+      });
+
+      if (!itemRes.ok) {
+        const err = await itemRes.json();
+        throw new Error(err.detail || "Failed to submit report");
+      }
+
       setSuccess(
         isLost
           ? "Your lost item report has been submitted. We'll notify you if a match is found."
           : "Your found item report has been submitted. The owner will be notified.",
       );
-    }, 1000);
+
+      setTimeout(() => navigate("/dashboard"), 5000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const inputClass = (field) =>
@@ -438,7 +488,7 @@ function ReportForm({ type = "lost" }) {
         {/* Submit */}
         <button
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={loading || !!success}
           className="px-4 py-3 rounded-lg bg-secondary hover:bg-secondary-hover cursor-pointer text-white flex items-center justify-center gap-2 disabled:opacity-60"
         >
           {isLost ? "Submit Lost Report" : "Submit Found Report"}
