@@ -304,13 +304,29 @@ def get_my_items(current_user=Depends(get_current_user)):
             .order("created_at", desc=True) \
             .execute()
 
-        return {
-            "items": response.data
-        }
+        items = response.data
+
+        # For each item, generate signed URLs for its images
+        for item in items:
+            paths = item.get("image_paths") or []
+            signed_urls = []
+            for path in paths:
+                try:
+                    result = db_supabase.storage.from_("item-images").create_signed_url(
+                        path=path,
+                        expires_in=3600  # URL valid for 1 hour
+                    )
+                    signed_urls.append(result["signedURL"])
+                except Exception as e:
+                    print("SIGNED URL ERROR:", repr(e))
+                    signed_urls.append(None)
+            item["signed_urls"] = signed_urls
+
+        return {"items": items}
+
     except Exception as e:
         print("GET MY ITEMS ERROR:", repr(e))
         raise HTTPException(status_code=500, detail=str(e))
-
 @app.post("/items/upload")
 async def upload_item_images(
     files: List[UploadFile] = File(...),

@@ -55,8 +55,9 @@ function ReportForm({ type = "lost" }) {
   const [dateToOpen, setDateToOpen] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
 
-  const [image, setImage] = useState(null);
-  const [preview, setPreview] = useState(null);
+  const [images, setImages] = useState([]);
+  const [previews, setPreviews] = useState([]);
+
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -70,21 +71,29 @@ function ReportForm({ type = "lost" }) {
   };
 
   const handleImage = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Image must be under 5MB.");
+    const selected = Array.from(e.target.files);
+    if (!selected.length) return;
+
+    const oversized = selected.filter((f) => f.size > 7 * 1024 * 1024);
+    if (oversized.length > 0) {
+      setError("Each image must be under 7MB.");
       return;
     }
-    setImage(file);
-    setPreview(URL.createObjectURL(file));
+
+    const combined = [...images, ...selected].slice(0, 5); // max 5 images
+    setImages(combined);
+    setPreviews(combined.map((f) => URL.createObjectURL(f)));
     setError("");
   };
 
-  const removeImage = () => {
-    setImage(null);
-    setPreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  const removeImage = (index) => {
+    const newImages = images.filter((_, i) => i !== index);
+    const newPreviews = previews.filter((_, i) => i !== index);
+    setImages(newImages);
+    setPreviews(newPreviews);
+    if (newImages.length === 0 && fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const validate = () => {
@@ -116,9 +125,9 @@ function ReportForm({ type = "lost" }) {
     try {
       // Step 1: Upload image if one was selected
       let imagePaths = [];
-      if (image) {
+      if (image.length > 0) {
         const formData = new FormData();
-        formData.append("files", image);
+        images.forEach((f) => formData.append("files", f));
 
         const uploadRes = await fetch("http://localhost:8000/items/upload", {
           method: "POST",
@@ -431,55 +440,59 @@ function ReportForm({ type = "lost" }) {
           {/* Image Upload */}
           <div className="flex flex-col gap-1">
             <label className="text-sm">
-              Photo{" "}
-              <span className="text-text-muted font-normal">(optional)</span>
+              Photos{" "}
+              <span className="text-text-muted font-normal">
+                (optional, max 5)
+              </span>
             </label>
 
-            {!preview ? (
+            {/* Upload zone — always visible until 5 images */}
+            {images.length < 5 && (
               <label
                 htmlFor="image"
                 className="flex flex-col items-center justify-center gap-2 px-3 py-6 rounded-lg bg-white border border-dashed border-gray-300 hover:bg-secondary-soft hover:border-secondary cursor-pointer transition-colors"
               >
                 <Upload className="w-5 h-5 text-text-muted" />
                 <span className="text-sm text-text-muted">
-                  Click to upload a photo
+                  Click to upload photos
                 </span>
                 <span className="text-xs text-text-muted">
-                  PNG, JPG, WEBP — max 5MB
+                  PNG, JPG, WEBP — max 5MB each · {5 - images.length} remaining
                 </span>
                 <input
                   ref={fileInputRef}
                   type="file"
                   id="image"
                   accept="image/png,image/jpeg,image/webp"
+                  multiple
                   onChange={handleImage}
                   className="hidden"
                 />
               </label>
-            ) : (
-              <div className="flex flex-col gap-2">
-                <div className="rounded-lg overflow-hidden border border-gray-300">
-                  <img
-                    src={preview}
-                    alt="Preview"
-                    className="w-full h-44 object-cover"
-                  />
-                </div>
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-1.5">
-                    <ImageIcon className="w-4 h-4 text-text-muted" />
-                    <p className="text-xs text-text-muted truncate max-w-60">
-                      {image?.name}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={removeImage}
-                    className="text-xs text-danger hover:underline cursor-pointer"
+            )}
+
+            {/* Previews grid */}
+            {previews.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 mt-1">
+                {previews.map((src, i) => (
+                  <div
+                    key={i}
+                    className="relative rounded-lg overflow-hidden border border-gray-300"
                   >
-                    Remove
-                  </button>
-                </div>
+                    <img
+                      src={src}
+                      alt={`Preview ${i + 1}`}
+                      className="w-full h-24 object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(i)}
+                      className="absolute top-1 right-1 bg-white rounded-full w-5 h-5 flex items-center justify-center text-danger text-xs shadow cursor-pointer hover:bg-danger-soft"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
