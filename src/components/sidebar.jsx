@@ -10,8 +10,10 @@ import {
   Megaphone,
 } from "lucide-react";
 
+
 function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [user, setUser] = useState(null); // Placeholder user data
 
   return (
     <div
@@ -112,7 +114,7 @@ function Sidebar() {
           </div>
         ) : (
           <p className="whitespace-nowrap text-sm transition-opacity delay-75">
-            Sopuru Ani: Admin
+            {user?.first_name || "User"}: Admin
           </p>
         )}
       </div>

@@ -43,7 +43,7 @@ function Sidebar() {
                 : "max-w-56 opacity-100 translate-x-0"
             }`}
           >
-            Sopuru Ani: Admin
+            {user?.first_name || "User"}: Admin
           </p>
         </div>
       </div>
