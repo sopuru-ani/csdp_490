@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 
-function ItemDetailModal({ item, currentUserId, isAdmin, onClose, onUpdated }) {
+function ItemDetailModal({
+  item,
+  currentUserId,
+  isAdmin,
+  onClose,
+  onUpdated,
+  onDeleted,
+}) {
   const isLost = item.item_type === "lost";
   const isOwner = item.user_id === currentUserId;
   const signedUrls = (item.signed_urls || []).filter(Boolean);
@@ -59,8 +66,35 @@ function ItemDetailModal({ item, currentUserId, isAdmin, onClose, onUpdated }) {
     }
   };
 
+  // This function calls the backend to delete the item, then calls onDeleted to tell the parent to refetch and close the modal.
+  const handleDelete = async () => {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this report? This cannot be undone.",
+      )
+    )
+      return;
 
-// This function calls the backend to find potential matches for this item, then displays them in the modal.
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`http://localhost:8000/items/${item.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Delete failed");
+
+      onDeleted?.();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // This function calls the backend to find potential matches for this item, then displays them in the modal.
   const handleFindMatches = async () => {
     setMatchesLoading(true);
     setMatches(null);
@@ -321,6 +355,16 @@ function ItemDetailModal({ item, currentUserId, isAdmin, onClose, onUpdated }) {
           <div className="flex gap-2 pt-1">
             {!editing ? (
               <>
+                {/* Only allow delete on open items */}
+                {item.status !== "closed" && (
+                  <button
+                    onClick={handleDelete}
+                    disabled={loading}
+                    className="px-4 py-2 rounded-lg border border-danger text-danger hover:bg-danger-soft text-sm cursor-pointer disabled:opacity-60 transition-colors"
+                  >
+                    {loading ? "Deleting..." : "Delete"}
+                  </button>
+                )}
                 <button
                   onClick={() => setEditing(true)}
                   className="flex-1 px-4 py-2 rounded-lg bg-secondary hover:bg-secondary-hover text-white text-sm cursor-pointer"
@@ -329,7 +373,7 @@ function ItemDetailModal({ item, currentUserId, isAdmin, onClose, onUpdated }) {
                 </button>
                 <button
                   onClick={handleFindMatches}
-                  disabled={matchesLoading}
+                  disabled={matchesLoading || item.status === "closed"}
                   className="flex-1 px-4 py-2 rounded-lg border border-secondary text-secondary hover:bg-secondary-soft text-sm cursor-pointer disabled:opacity-60"
                 >
                   {matchesLoading ? "Searching..." : "🔍 Find Matches"}

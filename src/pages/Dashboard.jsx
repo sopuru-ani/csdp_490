@@ -3,6 +3,7 @@ import Sidebar from "@/components/sidebar";
 import ItemCard from "@/components/ItemCard";
 import ItemDetailModal from "@/components/ItemDetailModal";
 import { useNavigate } from "react-router-dom";
+import { set } from "date-fns";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -270,6 +271,10 @@ function Dashboard() {
             setSelectedItem(null);
             fetchMyItems();
             if (user.is_admin) fetchAllItems();
+          }}
+          onDeleted={() => {
+            setItems((prev) => prev.filter((i) => i.id !== selectedItem.id));
+            setSelectedItem(null);
           }}
         />
       )}

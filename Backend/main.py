@@ -784,3 +784,53 @@ def get_completed_matches(current_user=Depends(require_admin)):
     except Exception as e:
         print("GET COMPLETED MATCHES ERROR:", repr(e))
         raise HTTPException(status_code=500, detail=str(e))
+
+# This endpoint allows users to delete their own items, but only if the item is still open and has no pending matches.
+@app.delete("/items/{item_id}")
+def delete_item(
+    item_id: str,
+    current_user=Depends(get_current_user)
+):
+    try:
+        # Confirm item belongs to this user and is still open
+        existing = db_supabase.table("items") \
+            .select("*") \
+            .eq("id", item_id) \
+            .eq("user_id", current_user["id"]) \
+            .single() \
+            .execute()
+
+        if not existing.data:
+            raise HTTPException(status_code=404, detail="Item not found or not yours")
+
+        if existing.data.get("status") == "closed":
+            raise HTTPException(status_code=400, detail="Closed items cannot be deleted")
+
+        # Delete any pending matches involving this item first
+        db_supabase.table("matches") \
+            .delete() \
+            .eq("source_item_id", item_id) \
+            .eq("status", "pending") \
+            .execute()
+
+        # Delete the item
+        db_supabase.table("items") \
+            .delete() \
+            .eq("id", item_id) \
+            .execute()
+
+        # Clean up storage images
+        paths = existing.data.get("image_paths") or []
+        if paths:
+            try:
+                db_supabase.storage.from_("item-images").remove(paths)
+            except Exception as e:
+                print("STORAGE CLEANUP ERROR:", repr(e))
+
+        return {"message": "Item deleted successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("DELETE ITEM ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))

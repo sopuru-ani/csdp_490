@@ -9,7 +9,7 @@ import {
   CircleQuestionMark,
   Megaphone,
 } from "lucide-react";
-
+import { useNavigate } from "react-router-dom";
 
 function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
@@ -58,26 +58,31 @@ function Sidebar() {
             icon={<Home className="w-5 h-5" />}
             label="Dashboard"
             collapsed={collapsed}
+            href="/dashboard"
           />
           <NavItem
             icon={<Clipboard className="w-5 h-5" />}
             label="My Reports"
             collapsed={collapsed}
+            href="/my-reports"
           />
           <NavItem
             icon={<Bell className="w-5 h-5" />}
             label="Notifications"
             collapsed={collapsed}
+            href="/notifications"
           />
           <NavItem
             icon={<Settings className="w-5 h-5" />}
             label="Setting"
             collapsed={collapsed}
+            href="/settings"
           />
           <NavItem
             icon={<MessageCircle className="w-5 h-5" />}
             label="Messages"
             collapsed={collapsed}
+            href="/messages"
           />
         </div>
 
@@ -122,9 +127,13 @@ function Sidebar() {
   );
 }
 
-function NavItem({ icon, label, collapsed }) {
+function NavItem({ icon, label, collapsed, href }) {
+  const navigate = useNavigate();
   return (
-    <div className="hover:bg-primary-muted rounded-sm p-2 flex flex-row items-center cursor-pointer transition-colors duration-150 overflow-hidden">
+    <div
+      onClick={() => href && navigate(href)}
+      className="hover:bg-primary-muted rounded-sm p-2 flex flex-row items-center cursor-pointer transition-colors duration-150 overflow-hidden"
+    >
       {/* Icon wrapper: takes full width and centers when collapsed, shrinks back when expanded */}
       <div
         className={`shrink-0 transition-all duration-300 ${

@@ -172,7 +172,7 @@ function ReportForm({ type = "lost" }) {
           : "Your found item report has been submitted. The owner will be notified.",
       );
 
-      setTimeout(() => navigate("/dashboard"), 5000);
+      setTimeout(() => navigate("/dashboard"), 2000);
     } catch (err) {
       setError(err.message);
     } finally {

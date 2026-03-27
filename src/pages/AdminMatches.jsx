@@ -4,12 +4,13 @@ import Sidebar from "@/components/sidebar";
 
 function AdminMatches() {
   const navigate = useNavigate();
-  const [matches, setMatches] = useState([]);
+  const [tab, setTab] = useState("pending");
+  const [pending, setPending] = useState([]);
+  const [completed, setCompleted] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    async function checkAdminAndFetch() {
+    async function init() {
       try {
         const authRes = await fetch("http://localhost:8000/auth/userchecker", {
           credentials: "include",
@@ -23,19 +24,28 @@ function AdminMatches() {
           navigate("/dashboard");
           return;
         }
-        setUser(userData);
       } catch {
         navigate("/login");
         return;
       }
 
       try {
-        const res = await fetch("http://localhost:8000/admin/matches", {
-          credentials: "include",
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setMatches(data.matches);
+        const [pendingRes, completedRes] = await Promise.all([
+          fetch("http://localhost:8000/admin/matches", {
+            credentials: "include",
+          }),
+          fetch("http://localhost:8000/admin/matches/completed", {
+            credentials: "include",
+          }),
+        ]);
+
+        if (pendingRes.ok) {
+          const d = await pendingRes.json();
+          setPending(d.matches);
+        }
+        if (completedRes.ok) {
+          const d = await completedRes.json();
+          setCompleted(d.matches);
         }
       } catch (err) {
         console.error(err);
@@ -44,7 +54,7 @@ function AdminMatches() {
       }
     }
 
-    checkAdminAndFetch();
+    init();
   }, []);
 
   const handleReview = async (matchId, decision) => {
@@ -60,13 +70,26 @@ function AdminMatches() {
       );
 
       if (res.ok) {
-        // Remove reviewed match from list
-        setMatches((prev) => prev.filter((m) => m.id !== matchId));
+        const reviewed = pending.find((m) => m.id === matchId);
+        setPending((prev) => prev.filter((m) => m.id !== matchId));
+        if (decision === "approved" && reviewed) {
+          setCompleted((prev) => [
+            { ...reviewed, status: "approved" },
+            ...prev,
+          ]);
+        }
       }
     } catch (err) {
       console.error("Review failed:", err);
     }
   };
+
+  const tabClass = (t) =>
+    `px-4 py-2 text-sm font-semibold rounded-lg cursor-pointer transition-colors ${
+      tab === t
+        ? "bg-secondary text-white"
+        : "text-text-muted hover:bg-primary-muted"
+    }`;
 
   return (
     <div className="w-dvw min-h-dvh flex flex-row bg-primary-soft">
@@ -74,39 +97,74 @@ function AdminMatches() {
       <div className="p-4 flex-1 flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-bold text-2xl">Pending Matches</p>
+            <p className="font-bold text-2xl">Match Review</p>
             <p className="text-sm text-text-muted">
-              Review and approve or reject match requests from students
+              Approve or reject student match requests
             </p>
           </div>
-          {!loading && (
-            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-warning-soft text-warning">
-              {matches.length} pending
-            </span>
-          )}
+        </div>
+
+        {/* Tabs */}
+        <div className="flex items-center gap-2">
+          <button
+            className={tabClass("pending")}
+            onClick={() => setTab("pending")}
+          >
+            Pending
+            {pending.length > 0 && (
+              <span className="ml-2 text-xs bg-warning text-white px-1.5 py-0.5 rounded-full">
+                {pending.length}
+              </span>
+            )}
+          </button>
+          <button
+            className={tabClass("completed")}
+            onClick={() => setTab("completed")}
+          >
+            Completed
+            {completed.length > 0 && (
+              <span className="ml-2 text-xs bg-success text-white px-1.5 py-0.5 rounded-full">
+                {completed.length}
+              </span>
+            )}
+          </button>
         </div>
 
         {loading ? (
           <div className="flex justify-center py-10">
             <div className="border-secondary border-3 border-t-0 border-b-0 rounded-full w-8 h-8 animate-spin" />
           </div>
-        ) : matches.length === 0 ? (
+        ) : tab === "pending" ? (
+          pending.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-2">
+              <p className="text-4xl">✅</p>
+              <p className="font-semibold">All caught up!</p>
+              <p className="text-sm text-text-muted">
+                No pending match requests.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {pending.map((match) => (
+                <MatchReviewCard
+                  key={match.id}
+                  match={match}
+                  mode="pending"
+                  onApprove={() => handleReview(match.id, "approved")}
+                  onReject={() => handleReview(match.id, "rejected")}
+                />
+              ))}
+            </div>
+          )
+        ) : completed.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-2">
-            <p className="text-4xl">✅</p>
-            <p className="font-semibold">All caught up!</p>
-            <p className="text-sm text-text-muted">
-              No pending match requests.
-            </p>
+            <p className="text-4xl">📭</p>
+            <p className="font-semibold">No completed matches yet.</p>
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {matches.map((match) => (
-              <MatchReviewCard
-                key={match.id}
-                match={match}
-                onApprove={() => handleReview(match.id, "approved")}
-                onReject={() => handleReview(match.id, "rejected")}
-              />
+            {completed.map((match) => (
+              <MatchReviewCard key={match.id} match={match} mode="completed" />
             ))}
           </div>
         )}
@@ -115,7 +173,7 @@ function AdminMatches() {
   );
 }
 
-function MatchReviewCard({ match, onApprove, onReject }) {
+function MatchReviewCard({ match, mode, onApprove, onReject }) {
   const [deciding, setDeciding] = useState(null);
 
   const handle = async (decision, fn) => {
@@ -139,13 +197,20 @@ function MatchReviewCard({ match, onApprove, onReject }) {
             </p>
             <p className="text-xs text-text-muted">{match.requester.email}</p>
           </div>
-          <span className="ml-auto text-xs text-text-muted">
-            {new Date(match.created_at).toLocaleDateString()}
-          </span>
+          <div className="ml-auto flex items-center gap-2">
+            {mode === "completed" && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-success-soft text-success">
+                Approved
+              </span>
+            )}
+            <span className="text-xs text-text-muted">
+              {new Date(match.created_at).toLocaleDateString()}
+            </span>
+          </div>
         </div>
       )}
 
-      {/* Two item cards side by side */}
+      {/* Items side by side */}
       <div className="grid grid-cols-2 gap-3">
         <ItemSummary item={match.source_item} label="Their item" />
         <ItemSummary item={match.matched_item} label="Matched with" />
@@ -167,28 +232,38 @@ function MatchReviewCard({ match, onApprove, onReject }) {
         </div>
       )}
 
-      {/* Action required banner */}
-      <div className="flex items-center justify-between px-3 py-2 bg-warning-soft rounded-lg border border-warning">
-        <p className="text-xs font-semibold text-warning">
-          Action required — approve or reject this match
-        </p>
-        <div className="flex gap-2">
-          <button
-            onClick={() => handle("rejected", onReject)}
-            disabled={!!deciding}
-            className="text-xs px-3 py-1.5 rounded-lg border border-danger text-danger hover:bg-danger-soft cursor-pointer disabled:opacity-60 transition-colors"
-          >
-            {deciding === "rejected" ? "Rejecting..." : "Reject"}
-          </button>
-          <button
-            onClick={() => handle("approved", onApprove)}
-            disabled={!!deciding}
-            className="text-xs px-3 py-1.5 rounded-lg bg-success hover:bg-success-hover text-white cursor-pointer disabled:opacity-60 transition-colors"
-          >
-            {deciding === "approved" ? "Approving..." : "Approve"}
-          </button>
+      {/* Action row */}
+      {mode === "pending" && (
+        <div className="flex items-center justify-between px-3 py-2 bg-warning-soft rounded-lg border border-warning">
+          <p className="text-xs font-semibold text-warning">
+            Action required — approve or reject this match
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handle("rejected", onReject)}
+              disabled={!!deciding}
+              className="text-xs px-3 py-1.5 rounded-lg border border-danger text-danger hover:bg-danger-soft cursor-pointer disabled:opacity-60 transition-colors"
+            >
+              {deciding === "rejected" ? "Rejecting..." : "Reject"}
+            </button>
+            <button
+              onClick={() => handle("approved", onApprove)}
+              disabled={!!deciding}
+              className="text-xs px-3 py-1.5 rounded-lg bg-success hover:bg-success-hover text-white cursor-pointer disabled:opacity-60 transition-colors"
+            >
+              {deciding === "approved" ? "Approving..." : "Approve"}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
+
+      {mode === "completed" && (
+        <div className="px-3 py-2 bg-success-soft rounded-lg border border-success">
+          <p className="text-xs font-semibold text-success">
+            Match approved — both items marked as closed
+          </p>
+        </div>
+      )}
     </div>
   );
 }
