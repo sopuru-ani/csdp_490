@@ -1,46 +1,65 @@
-function ItemCard({ item }) {
+function ItemCard({ item, onClick, pendingMatch }) {
   const isLost = item.item_type === "lost";
   const date = isLost ? item.date_lost_from : item.date_found;
   const signedUrls = (item.signed_urls || []).filter(Boolean);
 
   return (
-    <div className="flex flex-col gap-2 p-3 rounded-lg bg-white border border-gray-200">
-      <div className="flex flex-row items-start justify-between">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                isLost
-                  ? "bg-danger-soft text-danger"
-                  : "bg-success-soft text-success"
-              }`}
-            >
-              {isLost ? "Lost" : "Found"}
+    <div
+      onClick={onClick}
+      className="flex flex-row items-start gap-3 p-3 rounded-lg bg-white border border-gray-200 cursor-pointer hover:border-secondary hover:shadow-sm transition-all"
+    >
+      {/* Thumbnail */}
+      <div className="shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-primary-soft flex items-center justify-center">
+        {signedUrls.length > 0 ? (
+          <img
+            src={signedUrls[0]}
+            alt={item.item_name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <span className="text-2xl">📦</span>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 flex flex-col gap-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+              isLost
+                ? "bg-danger-soft text-danger"
+                : "bg-success-soft text-success"
+            }`}
+          >
+            {isLost ? "Lost" : "Found"}
+          </span>
+          <p className="font-semibold text-sm truncate">{item.item_name}</p>
+          {/* Pending match badge */}
+          {pendingMatch && (
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-warning-soft text-warning shrink-0">
+              Match requested
             </span>
-            <p className="font-semibold text-sm">{item.item_name}</p>
-          </div>
-          <p className="text-xs text-text-muted">
-            {item.category} · {item.location}
-          </p>
-          <p className="text-xs text-text-muted">{item.description}</p>
+          )}
         </div>
-        <p className="text-xs text-text-muted whitespace-nowrap ml-4">
-          {date ? new Date(date).toLocaleDateString() : "—"}
+        <p className="text-xs text-text-muted truncate">
+          {item.category} · {item.location}
+        </p>
+        <p className="text-xs text-text-muted line-clamp-1">
+          {item.description}
         </p>
       </div>
 
-      {signedUrls.length > 0 && (
-        <div className="grid grid-cols-4 gap-2 mt-1">
-          {signedUrls.map((url, i) => (
-            <img
-              key={i}
-              src={url}
-              alt={`${item.item_name} photo ${i + 1}`}
-              className="w-full h-20 object-cover rounded-md border border-gray-200"
-            />
-          ))}
-        </div>
-      )}
+      {/* Right side */}
+      <div className="shrink-0 flex flex-col items-end gap-1">
+        <p className="text-xs text-text-muted whitespace-nowrap">
+          {date ? new Date(date).toLocaleDateString() : "—"}
+        </p>
+        {signedUrls.length > 1 && (
+          <span className="text-xs text-text-muted">
+            📷 {signedUrls.length}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

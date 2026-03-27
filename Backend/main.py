@@ -1,4 +1,5 @@
 import os
+from click import prompt
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Response, Request, Depends, File, UploadFile
 from typing import List, Optional
@@ -8,13 +9,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from supabase import create_client, Client
 
+#from google import genai
+import google.generativeai as genai
+
 load_dotenv()
 
+# Load Gemini API key and configure the client
+
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+model = genai.GenerativeModel("gemini-2.5-flash-lite")
+
+# Load Supabase configuration from environment variables
 supabase_url=os.getenv("SUPABASE_URL")
 supabase_anon_key=os.getenv("SUPABASE_ANON_KEY")
 supabase_service_role_key=os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 frontend_url=os.getenv("FRONTEND_URL", "http://localhost:5173")
 
+# Ensure all required environment variables are set
 if not supabase_url or not supabase_anon_key:
     raise ValueError("SUPABASE_URL and SUPABASE_ANON_KEY must be set in the .env file. Missing!")
 
@@ -242,6 +253,18 @@ class FoundItemCreate(BaseModel):
     date_found: Optional[str] = None
     image_paths: List[str] = []
 
+class ItemUpdate(BaseModel):
+    item_name: Optional[str] = None
+    description: Optional[str] = None
+    location: Optional[str] = None
+    category: Optional[str] = None
+    date_lost_from: Optional[str] = None
+    date_lost_to: Optional[str] = None
+    date_found: Optional[str] = None
+
+
+# This endpoint allows users to create a new lost item report. 
+# It requires authentication and associates the new item with the current user.
 @app.post("/items/lost")
 def create_lost_item(
     item: LostItemCreate,
@@ -268,7 +291,8 @@ def create_lost_item(
         print("CREATE LOST ITEM ERROR:", repr(e))
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# This endpoint allows users to create a new found item report. 
+# Like the lost item endpoint, it requires authentication and associates the new item with the current user
 @app.post("/items/found")
 def create_found_item(
     item: FoundItemCreate,
@@ -294,13 +318,14 @@ def create_found_item(
         print("CREATE FOUND ITEM ERROR:", repr(e))
         raise HTTPException(status_code=500, detail=str(e))
     
-    
+# This endpoint retrieves all items reported by the currently authenticated user.    
 @app.get("/items/mine")
 def get_my_items(current_user=Depends(get_current_user)):
     try:
         response = db_supabase.table("items") \
             .select("*") \
             .eq("user_id", current_user["id"]) \
+            .eq("status", "open") \
             .order("created_at", desc=True) \
             .execute()
 
@@ -327,6 +352,10 @@ def get_my_items(current_user=Depends(get_current_user)):
     except Exception as e:
         print("GET MY ITEMS ERROR:", repr(e))
         raise HTTPException(status_code=500, detail=str(e))
+
+# This endpoint allows users to upload multiple images for an item. 
+# It generates a unique storage path for each image based on the user ID, current date, and a UUID. 
+# The images are stored in the "item-images" bucket in Supabase Storage.
 @app.post("/items/upload")
 async def upload_item_images(
     files: List[UploadFile] = File(...),
@@ -359,7 +388,399 @@ async def upload_item_images(
         "paths": uploaded_paths
     }
 
+#This endpoint checks if the current user is an admin. If not, it raises a 403 error.
 def require_admin(current_user=Depends(get_current_user)):
     if not current_user["is_admin"]:
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
+
+# This endpoint retrieves all lost and found items in the system. 
+# It is protected by the require_admin dependency, so only admin users can access it.
+@app.get("/items/all")
+def get_all_items(current_user=Depends(require_admin)):
+    try:
+        response = db_supabase.table("items") \
+            .select("*, users(first_name, last_name, email)") \
+            .eq("status", "open") \
+            .order("created_at", desc=True) \
+            .execute()
+
+        items = response.data
+
+        for item in items:
+            paths = item.get("image_paths") or []
+            signed_urls = []
+            for path in paths:
+                try:
+                    result = db_supabase.storage.from_("item-images").create_signed_url(
+                        path=path,
+                        expires_in=3600
+                    )
+                    signed_urls.append(result["signedURL"])
+                except Exception as e:
+                    print("SIGNED URL ERROR:", repr(e))
+                    signed_urls.append(None)
+            item["signed_urls"] = signed_urls
+
+        return {"items": items}
+
+    except Exception as e:
+        print("GET ALL ITEMS ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+# This endpoint allows users to update their own items. 
+# It first checks if the item belongs to the current user, then applies any provided updates.
+# Note: For simplicity, this endpoint allows updating both lost and found items. 
+# In a real application, you might want to separate these or add additional validation.
+@app.put("/items/{item_id}")
+def update_item(
+    item_id: str,
+    item: ItemUpdate,
+    current_user=Depends(get_current_user)
+):
+    try:
+        # First confirm this item belongs to the current user
+        existing = db_supabase.table("items") \
+            .select("*") \
+            .eq("id", item_id) \
+            .eq("user_id", current_user["id"]) \
+            .single() \
+            .execute()
+
+        if not existing.data:
+            raise HTTPException(status_code=404, detail="Item not found or not yours")
+
+        # Only update fields that were actually provided
+        updates = {k: v for k, v in item.dict().items() if v is not None}
+
+        if not updates:
+            raise HTTPException(status_code=400, detail="No fields to update")
+
+        response = db_supabase.table("items") \
+            .update(updates) \
+            .eq("id", item_id) \
+            .execute()
+
+        return {
+            "message": "Item updated successfully",
+            "item": response.data[0]
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("UPDATE ITEM ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/items/{item_id}/matches")
+def find_matches(item_id: str, current_user=Depends(get_current_user)):
+    try:
+        # Step 1: fetch the item the user wants to match
+        item_response = db_supabase.table("items") \
+            .select("*") \
+            .eq("id", item_id) \
+            .eq("user_id", current_user["id"]) \
+            .single() \
+            .execute()
+
+        if not item_response.data:
+            raise HTTPException(status_code=404, detail="Item not found or not yours")
+
+        source_item = item_response.data
+
+        # Step 2: fetch all opposite-type items to compare against
+        opposite_type = "found" if source_item["item_type"] == "lost" else "lost"
+
+        candidates_response = db_supabase.table("items") \
+            .select("*") \
+            .eq("item_type", opposite_type) \
+            .eq("category", source_item["category"]) \
+            .neq("user_id", current_user["id"]) \
+            .execute()
+
+        # Fall back to all items if no category matches found
+        if not candidates_response.data:
+            candidates_response = db_supabase.table("items") \
+                .select("*") \
+                .eq("item_type", opposite_type) \
+                .execute()
+
+        candidates = candidates_response.data
+
+        if not candidates:
+            return {"matches": [], "message": "No items to compare against yet."}
+
+        # Step 3: build the prompt
+        source_summary = f"""
+Item type: {source_item['item_type']}
+Name: {source_item['item_name']}
+Category: {source_item['category']}
+Description: {source_item['description']}
+Location: {source_item['location']}
+"""
+
+        candidates_text = ""
+        for i, c in enumerate(candidates):
+            candidates_text += f"""
+Candidate {i + 1}:
+ID: {c['id']}
+Name: {c['item_name']}
+Category: {c['category']}
+Description: {c['description']}
+Location: {c['location']}
+---"""
+
+        prompt = f"""
+You are an AI assistant for a university lost and found system.
+
+A student is looking for potential matches for their {source_item['item_type']} item.
+
+TARGET ITEM:
+{source_summary}
+
+CANDIDATE ITEMS (these are {opposite_type} items):
+{candidates_text}
+
+Your job is to identify which candidates are likely matches for the target item.
+Consider: item name, category, description details, and location proximity.
+
+Return your response as a JSON array of matches, ordered from most likely to least likely.
+Only include candidates with a reasonable chance of being a match (score >= 40).
+Return at most 5 matches.
+
+Each match should have:
+- "id": the candidate's ID
+- "score": a number from 0 to 100 representing match confidence
+- "reason": a short 1-2 sentence explanation of why it might be a match
+
+Respond ONLY with a valid JSON array. No extra text, no markdown, no code fences.
+Example format:
+[{{"id": "abc123", "score": 85, "reason": "Same category and similar description."}}]
+
+If there are no reasonable matches, return an empty array: []
+"""
+# After building the prompt, if the source item has images:
+        contents = [prompt]
+
+        if source_item.get("image_paths"):
+            signed = db_supabase.storage.from_("item-images").create_signed_url(
+                path=source_item["image_paths"][0],
+                expires_in=300
+            )
+            import httpx
+            img_bytes = httpx.get(signed["signedURL"]).content
+            import base64
+            contents = [
+                {"role": "user", "parts": [
+                    {"text": prompt},
+                    {"inline_data": {
+                        "mime_type": "image/jpeg",
+                        "data": base64.b64encode(img_bytes).decode()
+                    }}
+                ]}
+            ]
+
+        # Step 4: call Gemini with the prompt and optional image
+        response = model.generate_content(contents)
+        raw = response.text.strip()
+
+        # Step 5: parse the JSON response safely
+        import json
+        try:
+            match_results = json.loads(raw)
+        except json.JSONDecodeError:
+            print("GEMINI RAW RESPONSE:", raw)
+            raise HTTPException(status_code=500, detail="AI returned an unexpected response format.")
+
+        # Step 6: enrich matches with full item data
+        candidates_by_id = {c["id"]: c for c in candidates}
+        enriched_matches = []
+        for match in match_results:
+            item_data = candidates_by_id.get(match["id"])
+            if item_data:
+                enriched_matches.append({
+                    "score": match["score"],
+                    "reason": match["reason"],
+                    "item": item_data
+                })
+
+        return {
+            "source_item_id": item_id,
+            "matches": enriched_matches
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("MATCHING ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# This endpoint allows users to request a match between their item and a candidate item.
+@app.post("/items/{item_id}/matches/request")
+def request_match(
+    item_id: str,
+    body: dict,
+    current_user=Depends(get_current_user)
+):
+    matched_item_id = body.get("matched_item_id")
+    similarity_score = body.get("similarity_score")
+    reason = body.get("reason")
+
+    if not matched_item_id:
+        raise HTTPException(status_code=400, detail="matched_item_id is required")
+
+    try:
+        # Confirm source item belongs to this user
+        source = db_supabase.table("items") \
+            .select("*") \
+            .eq("id", item_id) \
+            .eq("user_id", current_user["id"]) \
+            .single() \
+            .execute()
+
+        if not source.data:
+            raise HTTPException(status_code=404, detail="Item not found or not yours")
+
+        # Check if this match pair already exists and is pending
+        existing = db_supabase.table("matches") \
+            .select("id") \
+            .eq("source_item_id", item_id) \
+            .eq("matched_item_id", matched_item_id) \
+            .eq("status", "pending") \
+            .execute()
+
+        if existing.data:
+            raise HTTPException(status_code=400, detail="A match request for this pair already exists.")
+
+        insert = db_supabase.table("matches").insert({
+            "source_item_id": item_id,
+            "matched_item_id": matched_item_id,
+            "similarity_score": similarity_score,
+            "reason": reason,
+            "status": "pending",
+            "requested_by": current_user["id"]
+        }).execute()
+
+        return {
+            "message": "Match requested. An admin will review it shortly.",
+            "match": insert.data[0]
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("REQUEST MATCH ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# This endpoint allows users to view all their match requests, including the status and details of each match.
+@app.get("/items/my-matches")
+def get_my_matches(current_user=Depends(get_current_user)):
+    try:
+        response = db_supabase.table("matches") \
+            .select("*, source_item:items!matches_source_item_id_fkey(*), matched_item:items!matches_matched_item_id_fkey(*)") \
+            .eq("requested_by", current_user["id"]) \
+            .order("created_at", desc=True) \
+            .execute()
+
+        return {"matches": response.data}
+
+    except Exception as e:
+        print("GET MY MATCHES ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+# This endpoint allows admin users to view all pending match requests in the system,
+# along with details about the source and matched items and the user who requested the match.
+@app.get("/admin/matches")
+def get_all_matches(current_user=Depends(require_admin)):
+    try:
+        response = db_supabase.table("matches") \
+            .select("*, source_item:items!matches_source_item_id_fkey(*), matched_item:items!matches_matched_item_id_fkey(*), requester:users!matches_requested_by_fkey(first_name, last_name, email)") \
+            .eq("status", "pending") \
+            .order("created_at", desc=True) \
+            .execute()
+
+        return {"matches": response.data}
+
+    except Exception as e:
+        print("GET ALL MATCHES ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# This endpoint allows admin users to review a specific match request by approving or rejecting it.
+##########################################################################################
+class MatchReviewBody(BaseModel):
+    decision: str  # "approved" or "rejected"
+
+@app.put("/admin/matches/{match_id}/review")
+def review_match(
+    match_id: str,
+    body: MatchReviewBody,
+    current_user=Depends(require_admin)
+):
+    if body.decision not in ["approved", "rejected"]:
+        raise HTTPException(status_code=400, detail="Decision must be 'approved' or 'rejected'")
+
+    try:
+        from datetime import datetime
+
+        # Fetch the match first so we know which items to close
+        match_response = db_supabase.table("matches") \
+            .select("*") \
+            .eq("id", match_id) \
+            .single() \
+            .execute()
+
+        if not match_response.data:
+            raise HTTPException(status_code=404, detail="Match not found")
+
+        match = match_response.data
+
+        # Update match status
+        db_supabase.table("matches").update({
+            "status": body.decision,
+            "reviewed_by": current_user["id"],
+            "reviewed_at": datetime.utcnow().isoformat()
+        }).eq("id", match_id).execute()
+
+        # If approved, close both items
+        if body.decision == "approved":
+            db_supabase.table("items").update({
+                "status": "closed"
+            }).eq("id", match["source_item_id"]).execute()
+
+            db_supabase.table("items").update({
+                "status": "closed"
+            }).eq("id", match["matched_item_id"]).execute()
+
+        return {
+            "message": f"Match {body.decision} successfully.",
+            "match_id": match_id
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("REVIEW MATCH ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+###########################################################################
+
+# This endpoint allows admin users to view all completed match requests (approved or rejected), 
+# along with details about the source and matched items and the user who requested the match.
+@app.get("/admin/matches/completed")
+def get_completed_matches(current_user=Depends(require_admin)):
+    try:
+        response = db_supabase.table("matches") \
+            .select("*, source_item:items!matches_source_item_id_fkey(*), matched_item:items!matches_matched_item_id_fkey(*), requester:users!matches_requested_by_fkey(first_name, last_name, email)") \
+            .eq("status", "approved") \
+            .order("reviewed_at", desc=True) \
+            .execute()
+
+        return {"matches": response.data}
+
+    except Exception as e:
+        print("GET COMPLETED MATCHES ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
