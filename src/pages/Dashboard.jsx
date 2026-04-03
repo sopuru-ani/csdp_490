@@ -3,6 +3,7 @@ import Sidebar from "@/components/sidebar";
 import ItemCard from "@/components/ItemCard";
 import ItemDetailModal from "@/components/ItemDetailModal";
 import { useNavigate } from "react-router-dom";
+import { apiFetch } from "@/lib/api";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -20,13 +21,12 @@ function Dashboard() {
   const [allItems, setAllItems] = useState([]);
   const [allItemsLoading, setAllItemsLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
+  const [reportsCount, setReportsCount] = useState(0);
 
   useEffect(() => {
     async function checkAuth() {
       try {
-        const res = await fetch("http://localhost:8000/auth/userchecker", {
-          credentials: "include",
-        });
+        const res = await apiFetch("/auth/userchecker");
         if (!res.ok) {
           navigate("/login");
           return;
@@ -38,6 +38,7 @@ function Dashboard() {
         if (data.is_admin) {
           fetchAllItems();
           fetchPendingCount();
+          fetchReportsCount();
         } else {
           setAllItemsLoading(false);
         }
@@ -52,9 +53,7 @@ function Dashboard() {
 
   async function fetchMyItems() {
     try {
-      const res = await fetch("http://localhost:8000/items/mine", {
-        credentials: "include",
-      });
+      const res = await apiFetch("/items/mine");
       if (res.ok) {
         const data = await res.json();
         setItems(data.items);
@@ -68,9 +67,7 @@ function Dashboard() {
 
   async function fetchMyMatches() {
     try {
-      const res = await fetch("http://localhost:8000/items/my-matches", {
-        credentials: "include",
-      });
+      const res = await apiFetch("/items/my-matches");
       if (res.ok) {
         const data = await res.json();
         setMyMatches(data.matches);
@@ -82,9 +79,7 @@ function Dashboard() {
 
   async function fetchAllItems() {
     try {
-      const res = await fetch("http://localhost:8000/items/all", {
-        credentials: "include",
-      });
+      const res = await apiFetch("/items/all");
       if (res.ok) {
         const data = await res.json();
         setAllItems(data.items);
@@ -96,11 +91,21 @@ function Dashboard() {
     }
   }
 
+  async function fetchReportsCount() {
+    try {
+      const res = await apiFetch("/admin/reports");
+      if (res.ok) {
+        const data = await res.json();
+        setReportsCount(data.reports.length);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   async function fetchPendingCount() {
     try {
-      const res = await fetch("http://localhost:8000/admin/matches", {
-        credentials: "include",
-      });
+      const res = await apiFetch("/admin/matches");
       if (res.ok) {
         const data = await res.json();
         setPendingCount(data.matches.length);
@@ -111,7 +116,7 @@ function Dashboard() {
   }
 
   async function handleLogout() {
-    await fetch("http://localhost:8000/auth/logout", {
+    await apiFetch("/auth/logout", {
       method: "POST",
       credentials: "include",
     });
@@ -276,6 +281,14 @@ function Dashboard() {
                 sub="full action history"
                 color="bg-primary-soft"
                 onClick={() => navigate("/admin/audit-logs")}
+                clickable
+              />
+              <StatCard
+                label="Abuse reports"
+                value={reportsCount}
+                sub="pending review"
+                color={reportsCount > 0 ? "bg-danger-soft" : "bg-primary-soft"}
+                onClick={() => navigate("/admin/reports")}
                 clickable
               />
             </div>

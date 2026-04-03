@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "@/components/sidebar";
 import { supabase } from "@/lib/supabase";
 import { apiFetch } from "@/lib/api";
+import ReportButton from "@/components/AbuseReportButton";
 
 function Messages() {
   const navigate = useNavigate();
@@ -232,7 +233,7 @@ function Messages() {
                 return (
                   <div
                     key={msg.id}
-                    className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                    className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
                   >
                     <div
                       className={`max-w-xs px-3 py-2 rounded-xl text-sm ${
@@ -251,6 +252,16 @@ function Messages() {
                         })}
                       </p>
                     </div>
+                    {/* Report button — only on other people's messages */}
+                    {!isMine && (
+                      <div className="mt-0.5 px-1">
+                        <ReportButton
+                          targetType="message"
+                          targetId={msg.id}
+                          reportedUserId={msg.sender_id}
+                        />
+                      </div>
+                    )}
                   </div>
                 );
               })}

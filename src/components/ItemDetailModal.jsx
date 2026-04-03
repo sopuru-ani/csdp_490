@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import ReportButton from "@/components/AbuseReportButton";
+
 
 function ItemDetailModal({
   item,
@@ -102,12 +104,9 @@ function ItemDetailModal({
     setError("");
 
     try {
-      const res = await apiFetch(
-        `/items/${item.id}/matches`,
-        {
-          credentials: "include",
-        },
-      );
+      const res = await apiFetch(`/items/${item.id}/matches`, {
+        credentials: "include",
+      });
 
       const data = await res.json();
 
@@ -128,19 +127,16 @@ function ItemDetailModal({
     const handleRequest = async () => {
       setStatus("loading");
       try {
-        const res = await apiFetch(
-          `/items/${sourceItemId}/matches/request`,
-          {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              matched_item_id: matchedItemId,
-              similarity_score: score / 100,
-              reason,
-            }),
-          },
-        );
+        const res = await apiFetch(`/items/${sourceItemId}/matches/request`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            matched_item_id: matchedItemId,
+            similarity_score: score / 100,
+            reason,
+          }),
+        });
 
         const data = await res.json();
 
@@ -348,6 +344,19 @@ function ItemDetailModal({
                 className={inputClass}
               />
             </div>
+          </div>
+        )}
+
+        {!isOwner && (
+          <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
+            <p className="text-xs text-text-muted flex-1">
+              Something wrong with this report?
+            </p>
+            <ReportButton
+              targetType="item"
+              targetId={item.id}
+              reportedUserId={item.user_id}
+            />
           </div>
         )}
 
