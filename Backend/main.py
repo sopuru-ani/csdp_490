@@ -475,9 +475,9 @@ def update_item(
 
 
 @app.get("/items/{item_id}/matches")
-def find_matches(item_id: str, current_user=Depends(get_current_user)):
+async def find_matches(item_id: str, current_user=Depends(get_current_user)):
     try:
-        # Step 1: fetch the item the user wants to match
+        # Step 1: fetch source item
         item_response = db_supabase.table("items") \
             .select("*") \
             .eq("id", item_id) \
@@ -489,30 +489,32 @@ def find_matches(item_id: str, current_user=Depends(get_current_user)):
             raise HTTPException(status_code=404, detail="Item not found or not yours")
 
         source_item = item_response.data
-
-        # Step 2: fetch all opposite-type items to compare against
         opposite_type = "found" if source_item["item_type"] == "lost" else "lost"
 
+        # Step 2: fetch candidates — category filter first, fallback to all
         candidates_response = db_supabase.table("items") \
             .select("*") \
             .eq("item_type", opposite_type) \
             .eq("category", source_item["category"]) \
+            .eq("status", "open") \
             .neq("user_id", current_user["id"]) \
             .execute()
-
-        # Fall back to all items if no category matches found
-        if not candidates_response.data:
-            candidates_response = db_supabase.table("items") \
-                .select("*") \
-                .eq("item_type", opposite_type) \
-                .execute()
 
         candidates = candidates_response.data
 
         if not candidates:
+            candidates_response = db_supabase.table("items") \
+                .select("*") \
+                .eq("item_type", opposite_type) \
+                .eq("status", "open") \
+                .neq("user_id", current_user["id"]) \
+                .execute()
+            candidates = candidates_response.data
+
+        if not candidates:
             return {"matches": [], "message": "No items to compare against yet."}
 
-        # Step 3: build the prompt
+        # Step 3: build text prompt
         source_summary = f"""
 Item type: {source_item['item_type']}
 Name: {source_item['item_name']}
@@ -532,61 +534,69 @@ Description: {c['description']}
 Location: {c['location']}
 ---"""
 
-        prompt = f"""
-You are an AI assistant for a university lost and found system.
+        image_paths = source_item.get("image_paths") or []
+        has_images = len(image_paths) > 0
+        image_note = "Photos of the target item are attached — use them alongside the text descriptions when scoring candidates." if has_images else ""
 
-A student is looking for potential matches for their {source_item['item_type']} item.
+        prompt = f"""You are an AI assistant for a university lost and found system.
+{image_note}
+
+A student is looking for matches for their {source_item['item_type']} item.
 
 TARGET ITEM:
 {source_summary}
 
-CANDIDATE ITEMS (these are {opposite_type} items):
+CANDIDATE ITEMS ({opposite_type} items to compare against):
 {candidates_text}
 
-Your job is to identify which candidates are likely matches for the target item.
-Consider: item name, category, description details, and location proximity.
+Identify which candidates are likely matches. Consider item name, category, description, location{', and the attached photos' if has_images else ''}.
 
-Return your response as a JSON array of matches, ordered from most likely to least likely.
-Only include candidates with a reasonable chance of being a match (score >= 40).
-Return at most 5 matches.
+Return a JSON array ordered from most to least likely match.
+Only include candidates scoring 40 or above. Return at most 5.
 
-Each match should have:
+Each entry must have:
 - "id": the candidate's ID
-- "score": a number from 0 to 100 representing match confidence
-- "reason": a short 1-2 sentence explanation of why it might be a match
+- "score": 0 to 100
+- "reason": 1-2 sentences explaining the match
 
-Respond ONLY with a valid JSON array. No extra text, no markdown, no code fences.
-Example format:
-[{{"id": "abc123", "score": 85, "reason": "Same category and similar description."}}]
+Respond ONLY with valid JSON. No markdown, no code fences, no extra text.
+If no reasonable matches exist, return: []"""
 
-If there are no reasonable matches, return an empty array: []
-"""
-# After building the prompt, if the source item has images:
-        contents = [prompt]
+        # Step 4: fetch source item images and build contents list
+        from google.genai import types
+        import httpx
 
-        if source_item.get("image_paths"):
-            signed = db_supabase.storage.from_("item-images").create_signed_url(
-                path=source_item["image_paths"][0],
-                expires_in=300
-            )
-            import httpx
-            img_bytes = httpx.get(signed["signedURL"]).content
-            import base64
-            contents = [
-                {"role": "user", "parts": [
-                    {"text": prompt},
-                    {"inline_data": {
-                        "mime_type": "image/jpeg",
-                        "data": base64.b64encode(img_bytes).decode()
-                    }}
-                ]}
-            ]
+        contents = []
+        images_added = 0
 
-        # Step 4: call Gemini with the prompt and optional image
+        async with httpx.AsyncClient(timeout=10) as http:
+            for path in image_paths[:3]:  # max 3 images
+                try:
+                    signed = db_supabase.storage.from_("item-images").create_signed_url(
+                        path=path,
+                        expires_in=300
+                    )
+                    img_res = await http.get(signed["signedURL"])
+                    if img_res.status_code == 200:
+                        mime = img_res.headers.get("content-type", "image/jpeg").split(";")[0]
+                        contents.append(
+                            types.Part.from_bytes(
+                                data=img_res.content,
+                                mime_type=mime
+                            )
+                        )
+                        images_added += 1
+                except Exception as e:
+                    print("IMAGE FETCH ERROR:", repr(e))
+
+        # Always add the text prompt last
+        contents.append(prompt)
+
+        # Step 5: call Gemini
         response = model.generate_content(contents)
-        raw = response.text.strip()
+        raw = response.text.strip() 
 
-        # Step 5: parse the JSON response safely
+        # Step 6: parse JSON response
         import json
         try:
             match_results = json.loads(raw)
@@ -594,12 +604,26 @@ If there are no reasonable matches, return an empty array: []
             print("GEMINI RAW RESPONSE:", raw)
             raise HTTPException(status_code=500, detail="AI returned an unexpected response format.")
 
-        # Step 6: enrich matches with full item data
+        # Step 7: enrich matches with full item data and signed URLs
         candidates_by_id = {c["id"]: c for c in candidates}
         enriched_matches = []
+
         for match in match_results:
             item_data = candidates_by_id.get(match["id"])
             if item_data:
+                matched_paths = item_data.get("image_paths") or []
+                matched_urls = []
+                for path in matched_paths:
+                    try:
+                        result = db_supabase.storage.from_("item-images").create_signed_url(
+                            path=path,
+                            expires_in=3600
+                        )
+                        matched_urls.append(result["signedURL"])
+                    except Exception:
+                        pass
+                item_data["signed_urls"] = matched_urls
+
                 enriched_matches.append({
                     "score": match["score"],
                     "reason": match["reason"],
@@ -608,14 +632,15 @@ If there are no reasonable matches, return an empty array: []
 
         return {
             "source_item_id": item_id,
-            "matches": enriched_matches
+            "matches": enriched_matches,
+            "images_used": images_added
         }
 
     except HTTPException:
         raise
     except Exception as e:
         print("MATCHING ERROR:", repr(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) 
 
 
 # This endpoint allows users to request a match between their item and a candidate item.
