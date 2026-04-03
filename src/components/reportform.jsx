@@ -24,6 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { apiFetch } from "@/lib/api";
+
 const CATEGORIES = [
   "Bags",
   "Electronics",
@@ -129,7 +131,7 @@ function ReportForm({ type = "lost" }) {
         const formData = new FormData();
         images.forEach((f) => formData.append("files", f));
 
-        const uploadRes = await fetch("http://localhost:8000/items/upload", {
+        const uploadRes = await apiFetch("/items/upload", {
           method: "POST",
           credentials: "include", // sends your auth cookie
           body: formData,
@@ -145,7 +147,7 @@ function ReportForm({ type = "lost" }) {
       }
 
       // Step 2: Submit the item report with the returned image paths
-      const itemRes = await fetch(`http://localhost:8000/items/${type}`, {
+      const itemRes = await apiFetch(`/items/${type}`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

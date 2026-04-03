@@ -4,6 +4,7 @@ import Sidebar from "@/components/sidebar";
 import ReportCard from "@/components/ReportCard";
 import ItemDetailModal from "@/components/ItemDetailModal";
 import { set } from "date-fns";
+import { apiFetch } from "@/lib/api";
 
 function MyReports() {
   const navigate = useNavigate();
@@ -15,9 +16,7 @@ function MyReports() {
 
   async function fetchItems() {
     try {
-      const res = await fetch("http://localhost:8000/items/mine", {
-        credentials: "include",
-      });
+      const res = await apiFetch("/items/mine");
       if (res.ok) {
         const data = await res.json();
         setItems(data.items);
@@ -32,9 +31,7 @@ function MyReports() {
   useEffect(() => {
     async function init() {
       try {
-        const authRes = await fetch("http://localhost:8000/auth/userchecker", {
-          credentials: "include",
-        });
+        const authRes = await apiFetch("/auth/userchecker");
         if (!authRes.ok) {
           navigate("/login");
           return;

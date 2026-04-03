@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
+import { apiFetch } from "@/lib/api";
 
 function Signup() {
   const [firstName, setFirstName] = useState("");
@@ -100,7 +101,7 @@ function Signup() {
     }
 
     try {
-      const res = await fetch("http://localhost:8000/auth/signup", {
+      const res = await apiFetch("/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

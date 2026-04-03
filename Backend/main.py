@@ -8,9 +8,19 @@ from datetime import date
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from supabase import create_client, Client
+from google.generativeai import types
+import httpx
 
-#from google import genai
+
+# Rate limiting imports (optional, can be configured as needed)
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+# Initialize the rate limiter (e.g., 100 requests per hour per IP)
 import google.generativeai as genai
+
+limiter = Limiter(key_func=get_remote_address)
 
 load_dotenv()
 
@@ -38,6 +48,10 @@ app = FastAPI(
     description="Backend for the campus lost and found system",
     version="1.0.0"
 )
+# Attach the rate limiter to the app and set up the exception handler for when the rate limit is exceeded. 
+# This will help protect the API from abuse by limiting the number of requests a client can make in a given time period.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,18 +70,29 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+
+# This function logs user actions to an "audit_logs" table in the database.
+
+def log_action(actor_id: str, action: str, target_type: str = None, target_id: str = None, details: dict = None):
+    try:
+        db_supabase.table("audit_logs").insert({
+            "actor_id": actor_id,
+            "action": action,
+            "target_type": target_type,
+            "target_id": target_id,
+            "details": details or {}
+        }).execute()
+    except Exception as e:
+        print("AUDIT LOG ERROR:", repr(e))
+
 # root endpoint
 @app.get("/")
 def read_root():
     return {"message": "AI Lost and Found API is running"}
 
-# test endpoint
-@app.get("/test")
-def test():
-    return {"status": "working"}
-
 @app.post("/auth/signup")
-def signup(request: SignupRequest):
+@limiter.limit("5/minute")
+def signup(request: Request, request_data: SignupRequest):
     try:
         auth_response = auth_supabase.auth.sign_up(
             {
@@ -109,7 +134,8 @@ def signup(request: SignupRequest):
         raise HTTPException(status_code=400, detail=str(e))
     
 @app.post("/auth/login")
-def login(request_data: LoginRequest, response: Response):
+@limiter.limit("10/minute")
+def login(request: Request, request_data: LoginRequest, response: Response):
     try:
         auth_response = auth_supabase.auth.sign_in_with_password(
             {
@@ -266,7 +292,9 @@ class ItemUpdate(BaseModel):
 # This endpoint allows users to create a new lost item report. 
 # It requires authentication and associates the new item with the current user.
 @app.post("/items/lost")
+@limiter.limit("20/minute")
 def create_lost_item(
+    request: Request,
     item: LostItemCreate,
     current_user=Depends(get_current_user)
 ):
@@ -294,7 +322,9 @@ def create_lost_item(
 # This endpoint allows users to create a new found item report. 
 # Like the lost item endpoint, it requires authentication and associates the new item with the current user
 @app.post("/items/found")
+@limiter.limit("20/minute")
 def create_found_item(
+    request: Request,
     item: FoundItemCreate,
     current_user=Depends(get_current_user)
 ):
@@ -475,9 +505,10 @@ def update_item(
 
 
 @app.get("/items/{item_id}/matches")
-def find_matches(item_id: str, current_user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def find_matches(request: Request, item_id: str, current_user=Depends(get_current_user)):
     try:
-        # Step 1: fetch the item the user wants to match
+        # Step 1: fetch source item
         item_response = db_supabase.table("items") \
             .select("*") \
             .eq("id", item_id) \
@@ -489,30 +520,32 @@ def find_matches(item_id: str, current_user=Depends(get_current_user)):
             raise HTTPException(status_code=404, detail="Item not found or not yours")
 
         source_item = item_response.data
-
-        # Step 2: fetch all opposite-type items to compare against
         opposite_type = "found" if source_item["item_type"] == "lost" else "lost"
 
+        # Step 2: fetch candidates — category filter first, fallback to all
         candidates_response = db_supabase.table("items") \
             .select("*") \
             .eq("item_type", opposite_type) \
             .eq("category", source_item["category"]) \
+            .eq("status", "open") \
             .neq("user_id", current_user["id"]) \
             .execute()
-
-        # Fall back to all items if no category matches found
-        if not candidates_response.data:
-            candidates_response = db_supabase.table("items") \
-                .select("*") \
-                .eq("item_type", opposite_type) \
-                .execute()
 
         candidates = candidates_response.data
 
         if not candidates:
+            candidates_response = db_supabase.table("items") \
+                .select("*") \
+                .eq("item_type", opposite_type) \
+                .eq("status", "open") \
+                .neq("user_id", current_user["id"]) \
+                .execute()
+            candidates = candidates_response.data
+
+        if not candidates:
             return {"matches": [], "message": "No items to compare against yet."}
 
-        # Step 3: build the prompt
+        # Step 3: build text prompt
         source_summary = f"""
 Item type: {source_item['item_type']}
 Name: {source_item['item_name']}
@@ -532,61 +565,67 @@ Description: {c['description']}
 Location: {c['location']}
 ---"""
 
-        prompt = f"""
-You are an AI assistant for a university lost and found system.
+        image_paths = source_item.get("image_paths") or []
+        has_images = len(image_paths) > 0
+        image_note = "Photos of the target item are attached — use them alongside the text descriptions when scoring candidates." if has_images else ""
 
-A student is looking for potential matches for their {source_item['item_type']} item.
+        prompt = f"""You are an AI assistant for a university lost and found system.
+{image_note}
+
+A student is looking for matches for their {source_item['item_type']} item.
 
 TARGET ITEM:
 {source_summary}
 
-CANDIDATE ITEMS (these are {opposite_type} items):
+CANDIDATE ITEMS ({opposite_type} items to compare against):
 {candidates_text}
 
-Your job is to identify which candidates are likely matches for the target item.
-Consider: item name, category, description details, and location proximity.
+Identify which candidates are likely matches. Consider item name, category, description, location{', and the attached photos' if has_images else ''}.
 
-Return your response as a JSON array of matches, ordered from most likely to least likely.
-Only include candidates with a reasonable chance of being a match (score >= 40).
-Return at most 5 matches.
+Return a JSON array ordered from most to least likely match.
+Only include candidates scoring 40 or above. Return at most 5.
 
-Each match should have:
+Each entry must have:
 - "id": the candidate's ID
-- "score": a number from 0 to 100 representing match confidence
-- "reason": a short 1-2 sentence explanation of why it might be a match
+- "score": 0 to 100
+- "reason": 1-2 sentences explaining the match
 
-Respond ONLY with a valid JSON array. No extra text, no markdown, no code fences.
-Example format:
-[{{"id": "abc123", "score": 85, "reason": "Same category and similar description."}}]
+Respond ONLY with valid JSON. No markdown, no code fences, no extra text.
+If no reasonable matches exist, return: []"""
 
-If there are no reasonable matches, return an empty array: []
-"""
-# After building the prompt, if the source item has images:
-        contents = [prompt]
+        # Step 4: fetch source item images and build contents list
 
-        if source_item.get("image_paths"):
-            signed = db_supabase.storage.from_("item-images").create_signed_url(
-                path=source_item["image_paths"][0],
-                expires_in=300
-            )
-            import httpx
-            img_bytes = httpx.get(signed["signedURL"]).content
-            import base64
-            contents = [
-                {"role": "user", "parts": [
-                    {"text": prompt},
-                    {"inline_data": {
-                        "mime_type": "image/jpeg",
-                        "data": base64.b64encode(img_bytes).decode()
-                    }}
-                ]}
-            ]
+        contents = []
+        images_added = 0
 
-        # Step 4: call Gemini with the prompt and optional image
+        async with httpx.AsyncClient(timeout=10) as http:
+            for path in image_paths[:3]:  # max 3 images
+                try:
+                    signed = db_supabase.storage.from_("item-images").create_signed_url(
+                        path=path,
+                        expires_in=300
+                    )
+                    img_res = await http.get(signed["signedURL"])
+                    if img_res.status_code == 200:
+                        mime = img_res.headers.get("content-type", "image/jpeg").split(";")[0]
+                        contents.append(
+                            types.Part.from_bytes(
+                                data=img_res.content,
+                                mime_type=mime
+                            )
+                        )
+                        images_added += 1
+                except Exception as e:
+                    print("IMAGE FETCH ERROR:", repr(e))
+
+        # Always add the text prompt last
+        contents.append(prompt)
+
+        # Step 5: call Gemini
         response = model.generate_content(contents)
-        raw = response.text.strip()
+        raw = response.text.strip() 
 
-        # Step 5: parse the JSON response safely
+        # Step 6: parse JSON response
         import json
         try:
             match_results = json.loads(raw)
@@ -594,12 +633,26 @@ If there are no reasonable matches, return an empty array: []
             print("GEMINI RAW RESPONSE:", raw)
             raise HTTPException(status_code=500, detail="AI returned an unexpected response format.")
 
-        # Step 6: enrich matches with full item data
+        # Step 7: enrich matches with full item data and signed URLs
         candidates_by_id = {c["id"]: c for c in candidates}
         enriched_matches = []
+
         for match in match_results:
             item_data = candidates_by_id.get(match["id"])
             if item_data:
+                matched_paths = item_data.get("image_paths") or []
+                matched_urls = []
+                for path in matched_paths:
+                    try:
+                        result = db_supabase.storage.from_("item-images").create_signed_url(
+                            path=path,
+                            expires_in=3600
+                        )
+                        matched_urls.append(result["signedURL"])
+                    except Exception:
+                        pass
+                item_data["signed_urls"] = matched_urls
+
                 enriched_matches.append({
                     "score": match["score"],
                     "reason": match["reason"],
@@ -608,14 +661,15 @@ If there are no reasonable matches, return an empty array: []
 
         return {
             "source_item_id": item_id,
-            "matches": enriched_matches
+            "matches": enriched_matches,
+            "images_used": images_added
         }
 
     except HTTPException:
         raise
     except Exception as e:
         print("MATCHING ERROR:", repr(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) 
 
 
 # This endpoint allows users to request a match between their item and a candidate item.
@@ -663,6 +717,14 @@ def request_match(
             "status": "pending",
             "requested_by": current_user["id"]
         }).execute()
+
+        log_action(
+            actor_id=current_user["id"],
+            action="match_requested",
+            target_type="match",
+            target_id=insert.data[0]["id"],
+            details={"source_item_id": item_id, "matched_item_id": matched_item_id, "score": similarity_score}
+        )
 
         return {
             "message": "Match requested. An admin will review it shortly.",
@@ -746,15 +808,38 @@ def review_match(
             "reviewed_at": datetime.utcnow().isoformat()
         }).eq("id", match_id).execute()
 
+#This function logs the admin's review action to the audit_logs table, 
+# recording who made the decision, 
+# what the decision was, 
+# and details about the match that was reviewed.
+        log_action(
+            actor_id=current_user["id"],
+            action=f"match_{body.decision}",
+            target_type="match",
+            target_id=match_id,
+            details={"decision": body.decision, "similarity_score": match.get("similarity_score")}
+        )
+
         # If approved, close both items
         if body.decision == "approved":
-            db_supabase.table("items").update({
-                "status": "closed"
-            }).eq("id", match["source_item_id"]).execute()
+            # Close both items
+            db_supabase.table("items").update({"status": "closed"}) \
+                .eq("id", match["source_item_id"]).execute()
+            db_supabase.table("items").update({"status": "closed"}) \
+                .eq("id", match["matched_item_id"]).execute()
 
-            db_supabase.table("items").update({
-                "status": "closed"
-            }).eq("id", match["matched_item_id"]).execute()
+            # Fetch both items to get their owner IDs
+            source = db_supabase.table("items").select("user_id") \
+                .eq("id", match["source_item_id"]).single().execute()
+            matched = db_supabase.table("items").select("user_id") \
+                .eq("id", match["matched_item_id"]).single().execute()
+
+            # Create conversation between the two owners
+            db_supabase.table("conversations").insert({
+                "match_id": match_id,
+                "user_one_id": source.data["user_id"],
+                "user_two_id": matched.data["user_id"]
+            }).execute()
 
         return {
             "message": f"Match {body.decision} successfully.",
@@ -827,10 +912,342 @@ def delete_item(
             except Exception as e:
                 print("STORAGE CLEANUP ERROR:", repr(e))
 
+
+        log_action(
+            actor_id=current_user["id"],
+            action="item_deleted",
+            target_type="item",
+            target_id=item_id,
+            details={"item_name": existing.data.get("item_name"), "item_type": existing.data.get("item_type")}
+        )
+
         return {"message": "Item deleted successfully"}
+    
 
     except HTTPException:
         raise
     except Exception as e:
         print("DELETE ITEM ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# This endpoint retrieves all conversations that the current user is a part of, along with the latest message and match details for each conversation.
+@app.get("/conversations")
+def get_my_conversations(current_user=Depends(get_current_user)):
+    try:
+        user_id = current_user["id"]
+
+        response = db_supabase.table("conversations") \
+            .select("""
+                *,
+                match:matches(
+                    similarity_score,
+                    source_item:items!matches_source_item_id_fkey(item_name, item_type),
+                    matched_item:items!matches_matched_item_id_fkey(item_name, item_type)
+                ),
+                user_one:users!conversations_user_one_id_fkey(id, first_name, last_name),
+                user_two:users!conversations_user_two_id_fkey(id, first_name, last_name)
+            """) \
+            .or_(f"user_one_id.eq.{user_id},user_two_id.eq.{user_id}") \
+            .order("created_at", desc=True) \
+            .execute()
+
+        return {"conversations": response.data}
+
+    except Exception as e:
+        print("GET CONVERSATIONS ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+# This endpoint retrieves all messages for a specific conversation, but only if the current user is a participant in that conversation.    
+@app.get("/conversations/{conversation_id}/messages")
+def get_messages(
+    conversation_id: str,
+    current_user=Depends(get_current_user)
+):
+    try:
+        user_id = current_user["id"]
+
+        # Verify user belongs to this conversation
+        convo = db_supabase.table("conversations") \
+            .select("*") \
+            .eq("id", conversation_id) \
+            .or_(f"user_one_id.eq.{user_id},user_two_id.eq.{user_id}") \
+            .single() \
+            .execute()
+
+        if not convo.data:
+            raise HTTPException(status_code=403, detail="Not your conversation")
+
+# Fetch messages with sender info
+        messages = db_supabase.table("messages") \
+            .select("*, sender:users!messages_sender_id_fkey(id, first_name, last_name)") \
+            .eq("conversation_id", conversation_id) \
+            .order("created_at", desc=False) \
+            .execute()
+
+        # Mark messages as read
+        # Only mark as read if there are unread messages
+        unread_check = db_supabase.table("messages") \
+            .select("id") \
+            .eq("conversation_id", conversation_id) \
+            .eq("read", False) \
+            .neq("sender_id", user_id) \
+            .execute()
+
+        if unread_check.data:
+            db_supabase.table("messages") \
+                .update({"read": True}) \
+                .eq("conversation_id", conversation_id) \
+                .neq("sender_id", user_id) \
+                .execute()
+
+        return {"messages": messages.data}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("GET MESSAGES ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+class SendMessageBody(BaseModel):
+    content: str
+
+
+# This endpoint allows a user to send a message in a specific conversation, but only if they are a participant in that conversation.
+# It validates that the message content is not empty and then inserts the new message into the database, associating it with the conversation and the sender.
+@app.post("/conversations/{conversation_id}/messages")
+@limiter.limit("30/minute")
+def send_message(
+    request: Request,
+    conversation_id: str,
+    body: SendMessageBody,
+    current_user=Depends(get_current_user)
+):
+    try:
+        user_id = current_user["id"]
+
+        if not body.content.strip():
+            raise HTTPException(status_code=400, detail="Message cannot be empty")
+
+        # Verify user belongs to this conversation
+        convo = db_supabase.table("conversations") \
+            .select("*") \
+            .eq("id", conversation_id) \
+            .or_(f"user_one_id.eq.{user_id},user_two_id.eq.{user_id}") \
+            .single() \
+            .execute()
+
+        if not convo.data:
+            raise HTTPException(status_code=403, detail="Not your conversation")
+
+        result = db_supabase.table("messages").insert({
+            "conversation_id": conversation_id,
+            "sender_id": user_id,
+            "content": body.content.strip()
+        }).execute()
+
+        log_action(
+            actor_id=current_user["id"],
+            action="message_sent",
+            target_type="conversation",
+            target_id=conversation_id,
+            details={}
+        )
+
+        return {
+            "message": "Sent",
+            "data": result.data[0]
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("SEND MESSAGE ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+# This endpoint retrieves the count of unread messages across all conversations for the current user.
+@app.get("/conversations/unread")
+def get_unread_count(current_user=Depends(get_current_user)):
+    try:
+        user_id = current_user["id"]
+
+        # Get all conversation IDs for this user
+        convos = db_supabase.table("conversations") \
+            .select("id") \
+            .or_(f"user_one_id.eq.{user_id},user_two_id.eq.{user_id}") \
+            .execute()
+
+        if not convos.data:
+            return {"unread": 0}
+
+        convo_ids = [c["id"] for c in convos.data]
+
+        # Count unread messages not sent by this user
+        unread = db_supabase.table("messages") \
+            .select("id", count="exact") \
+            .in_("conversation_id", convo_ids) \
+            .eq("read", False) \
+            .neq("sender_id", user_id) \
+            .execute()
+
+        return {"unread": unread.count or 0}
+
+    except Exception as e:
+        print("UNREAD COUNT ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+#Admin endoint to view audit logs with pagination and filtering options.
+@app.get("/admin/audit-logs")
+def get_audit_logs(current_user=Depends(require_admin)):
+    try:
+        response = db_supabase.table("audit_logs") \
+            .select("*, actor:users!audit_logs_actor_id_fkey(first_name, last_name, email)") \
+            .order("created_at", desc=True) \
+            .limit(200) \
+            .execute()
+
+        return {"logs": response.data}
+
+    except Exception as e:
+        print("AUDIT LOGS ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class AbuseReportCreate(BaseModel):
+    target_type: str   # 'message', 'user', or 'item'
+    target_id: str
+    reported_user_id: Optional[str] = None
+    reason: str
+    details: Optional[str] = None
+
+# This endpoint allows users to report abuse related to messages, users, or items.
+@app.post("/report")
+@limiter.limit("5/minute")
+def submit_abuse_report(
+    request: Request,
+    body: AbuseReportCreate,
+    current_user=Depends(get_current_user)
+):
+    valid_types = ["message", "user", "item"]
+    valid_reasons = ["spam", "harassment", "false_claim", "inappropriate", "other"]
+
+    if body.target_type not in valid_types:
+        raise HTTPException(status_code=400, detail="Invalid target type")
+    if body.reason not in valid_reasons:
+        raise HTTPException(status_code=400, detail="Invalid reason")
+
+    # Prevent self-reporting
+    if body.reported_user_id == current_user["id"]:
+        raise HTTPException(status_code=400, detail="You cannot report yourself")
+
+    try:
+        # Check for duplicate pending report from same user
+        existing = db_supabase.table("abuse_reports") \
+            .select("id") \
+            .eq("reporter_id", current_user["id"]) \
+            .eq("target_id", body.target_id) \
+            .eq("status", "pending") \
+            .execute()
+
+        if existing.data:
+            raise HTTPException(
+                status_code=400,
+                detail="You already have a pending report for this item."
+            )
+
+        result = db_supabase.table("abuse_reports").insert({
+            "reporter_id": current_user["id"],
+            "reported_user_id": body.reported_user_id,
+            "target_type": body.target_type,
+            "target_id": body.target_id,
+            "reason": body.reason,
+            "details": body.details,
+            "status": "pending"
+        }).execute()
+
+        log_action(
+            actor_id=current_user["id"],
+            action="report_submitted",
+            target_type=body.target_type,
+            target_id=body.target_id,
+            details={"reason": body.reason, "target_type": body.target_type}
+        )
+
+        return {
+            "message": "Report submitted. Our team will review it shortly.",
+            "report_id": result.data[0]["id"]
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("SUBMIT REPORT ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+# This endpoint allows admin users to view all pending abuse reports, along with details about the reporter, 
+# the reported user, and the content being reported.
+@app.get("/admin/reports")
+def get_abuse_reports(current_user=Depends(require_admin)):
+    try:
+        response = db_supabase.table("abuse_reports") \
+            .select("""
+                *,
+                reporter:users!abuse_reports_reporter_id_fkey(first_name, last_name, email),
+                reported_user:users!abuse_reports_reported_user_id_fkey(first_name, last_name, email)
+            """) \
+            .eq("status", "pending") \
+            .order("created_at", desc=True) \
+            .execute()
+
+        return {"reports": response.data}
+
+    except Exception as e:
+        print("GET REPORTS ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# This endpoint allows admin users to review a specific abuse report by marking it as "reviewed" or "dismissed".
+class ReportReviewBody(BaseModel):
+    decision: str  # 'reviewed' or 'dismissed'
+
+@app.put("/admin/reports/{report_id}/review")
+def review_abuse_report(
+    report_id: str,
+    body: ReportReviewBody,
+    current_user=Depends(require_admin)
+):
+    if body.decision not in ["reviewed", "dismissed"]:
+        raise HTTPException(status_code=400, detail="Decision must be 'reviewed' or 'dismissed'")
+
+    try:
+        from datetime import datetime
+
+        response = db_supabase.table("abuse_reports") \
+            .update({
+                "status": body.decision,
+                "reviewed_by": current_user["id"],
+                "reviewed_at": datetime.utcnow().isoformat()
+            }) \
+            .eq("id", report_id) \
+            .execute()
+
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Report not found")
+
+        log_action(
+            actor_id=current_user["id"],
+            action=f"report_{body.decision}",
+            target_type="abuse_report",
+            target_id=report_id,
+            details={"decision": body.decision}
+        )
+
+        return {"message": f"Report {body.decision} successfully."}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("REVIEW REPORT ERROR:", repr(e))
         raise HTTPException(status_code=500, detail=str(e))
