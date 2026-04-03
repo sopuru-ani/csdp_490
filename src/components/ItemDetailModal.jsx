@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { X } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 function ItemDetailModal({
   item,
@@ -43,7 +44,7 @@ function ItemDetailModal({
     setSuccess("");
 
     try {
-      const res = await fetch(`http://localhost:8000/items/${item.id}`, {
+      const res = await apiFetch(`/items/${item.id}`, {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -78,7 +79,7 @@ function ItemDetailModal({
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`http://localhost:8000/items/${item.id}`, {
+      const res = await apiFetch(`/items/${item.id}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -101,8 +102,8 @@ function ItemDetailModal({
     setError("");
 
     try {
-      const res = await fetch(
-        `http://localhost:8000/items/${item.id}/matches`,
+      const res = await apiFetch(
+        `/items/${item.id}/matches`,
         {
           credentials: "include",
         },
@@ -127,8 +128,8 @@ function ItemDetailModal({
     const handleRequest = async () => {
       setStatus("loading");
       try {
-        const res = await fetch(
-          `http://localhost:8000/items/${sourceItemId}/matches/request`,
+        const res = await apiFetch(
+          `/items/${sourceItemId}/matches/request`,
           {
             method: "POST",
             credentials: "include",

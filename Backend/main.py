@@ -8,9 +8,19 @@ from datetime import date
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from supabase import create_client, Client
+from google.generativeai import types
+import httpx
 
-#from google import genai
+
+# Rate limiting imports (optional, can be configured as needed)
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+# Initialize the rate limiter (e.g., 100 requests per hour per IP)
 import google.generativeai as genai
+
+limiter = Limiter(key_func=get_remote_address)
 
 load_dotenv()
 
@@ -38,6 +48,10 @@ app = FastAPI(
     description="Backend for the campus lost and found system",
     version="1.0.0"
 )
+# Attach the rate limiter to the app and set up the exception handler for when the rate limit is exceeded. 
+# This will help protect the API from abuse by limiting the number of requests a client can make in a given time period.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,18 +70,29 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+
+# This function logs user actions to an "audit_logs" table in the database.
+
+def log_action(actor_id: str, action: str, target_type: str = None, target_id: str = None, details: dict = None):
+    try:
+        db_supabase.table("audit_logs").insert({
+            "actor_id": actor_id,
+            "action": action,
+            "target_type": target_type,
+            "target_id": target_id,
+            "details": details or {}
+        }).execute()
+    except Exception as e:
+        print("AUDIT LOG ERROR:", repr(e))
+
 # root endpoint
 @app.get("/")
 def read_root():
     return {"message": "AI Lost and Found API is running"}
 
-# test endpoint
-@app.get("/test")
-def test():
-    return {"status": "working"}
-
 @app.post("/auth/signup")
-def signup(request: SignupRequest):
+@limiter.limit("5/minute")
+def signup(request: Request, request_data: SignupRequest):
     try:
         auth_response = auth_supabase.auth.sign_up(
             {
@@ -109,7 +134,8 @@ def signup(request: SignupRequest):
         raise HTTPException(status_code=400, detail=str(e))
     
 @app.post("/auth/login")
-def login(request_data: LoginRequest, response: Response):
+@limiter.limit("10/minute")
+def login(request: Request, request_data: LoginRequest, response: Response):
     try:
         auth_response = auth_supabase.auth.sign_in_with_password(
             {
@@ -266,7 +292,9 @@ class ItemUpdate(BaseModel):
 # This endpoint allows users to create a new lost item report. 
 # It requires authentication and associates the new item with the current user.
 @app.post("/items/lost")
+@limiter.limit("20/minute")
 def create_lost_item(
+    request: Request,
     item: LostItemCreate,
     current_user=Depends(get_current_user)
 ):
@@ -294,7 +322,9 @@ def create_lost_item(
 # This endpoint allows users to create a new found item report. 
 # Like the lost item endpoint, it requires authentication and associates the new item with the current user
 @app.post("/items/found")
+@limiter.limit("20/minute")
 def create_found_item(
+    request: Request,
     item: FoundItemCreate,
     current_user=Depends(get_current_user)
 ):
@@ -475,7 +505,8 @@ def update_item(
 
 
 @app.get("/items/{item_id}/matches")
-async def find_matches(item_id: str, current_user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def find_matches(request: Request, item_id: str, current_user=Depends(get_current_user)):
     try:
         # Step 1: fetch source item
         item_response = db_supabase.table("items") \
@@ -563,8 +594,6 @@ Respond ONLY with valid JSON. No markdown, no code fences, no extra text.
 If no reasonable matches exist, return: []"""
 
         # Step 4: fetch source item images and build contents list
-        from google.genai import types
-        import httpx
 
         contents = []
         images_added = 0
@@ -689,6 +718,14 @@ def request_match(
             "requested_by": current_user["id"]
         }).execute()
 
+        log_action(
+            actor_id=current_user["id"],
+            action="match_requested",
+            target_type="match",
+            target_id=insert.data[0]["id"],
+            details={"source_item_id": item_id, "matched_item_id": matched_item_id, "score": similarity_score}
+        )
+
         return {
             "message": "Match requested. An admin will review it shortly.",
             "match": insert.data[0]
@@ -770,6 +807,18 @@ def review_match(
             "reviewed_by": current_user["id"],
             "reviewed_at": datetime.utcnow().isoformat()
         }).eq("id", match_id).execute()
+
+#This function logs the admin's review action to the audit_logs table, 
+# recording who made the decision, 
+# what the decision was, 
+# and details about the match that was reviewed.
+        log_action(
+            actor_id=current_user["id"],
+            action=f"match_{body.decision}",
+            target_type="match",
+            target_id=match_id,
+            details={"decision": body.decision, "similarity_score": match.get("similarity_score")}
+        )
 
         # If approved, close both items
         if body.decision == "approved":
@@ -863,14 +912,26 @@ def delete_item(
             except Exception as e:
                 print("STORAGE CLEANUP ERROR:", repr(e))
 
+
+        log_action(
+            actor_id=current_user["id"],
+            action="item_deleted",
+            target_type="item",
+            target_id=item_id,
+            details={"item_name": existing.data.get("item_name"), "item_type": existing.data.get("item_type")}
+        )
+
         return {"message": "Item deleted successfully"}
+    
 
     except HTTPException:
         raise
     except Exception as e:
         print("DELETE ITEM ERROR:", repr(e))
         raise HTTPException(status_code=500, detail=str(e))
-    
+
+
+# This endpoint retrieves all conversations that the current user is a part of, along with the latest message and match details for each conversation.
 @app.get("/conversations")
 def get_my_conversations(current_user=Depends(get_current_user)):
     try:
@@ -896,7 +957,8 @@ def get_my_conversations(current_user=Depends(get_current_user)):
     except Exception as e:
         print("GET CONVERSATIONS ERROR:", repr(e))
         raise HTTPException(status_code=500, detail=str(e))
-    
+
+# This endpoint retrieves all messages for a specific conversation, but only if the current user is a participant in that conversation.    
 @app.get("/conversations/{conversation_id}/messages")
 def get_messages(
     conversation_id: str,
@@ -916,18 +978,28 @@ def get_messages(
         if not convo.data:
             raise HTTPException(status_code=403, detail="Not your conversation")
 
+# Fetch messages with sender info
         messages = db_supabase.table("messages") \
             .select("*, sender:users!messages_sender_id_fkey(id, first_name, last_name)") \
             .eq("conversation_id", conversation_id) \
-            .order("created_at", asc=True) \
+            .order("created_at", desc=False) \
             .execute()
 
         # Mark messages as read
-        db_supabase.table("messages") \
-            .update({"read": True}) \
+        # Only mark as read if there are unread messages
+        unread_check = db_supabase.table("messages") \
+            .select("id") \
             .eq("conversation_id", conversation_id) \
+            .eq("read", False) \
             .neq("sender_id", user_id) \
             .execute()
+
+        if unread_check.data:
+            db_supabase.table("messages") \
+                .update({"read": True}) \
+                .eq("conversation_id", conversation_id) \
+                .neq("sender_id", user_id) \
+                .execute()
 
         return {"messages": messages.data}
 
@@ -940,8 +1012,13 @@ def get_messages(
 class SendMessageBody(BaseModel):
     content: str
 
+
+# This endpoint allows a user to send a message in a specific conversation, but only if they are a participant in that conversation.
+# It validates that the message content is not empty and then inserts the new message into the database, associating it with the conversation and the sender.
 @app.post("/conversations/{conversation_id}/messages")
+@limiter.limit("30/minute")
 def send_message(
+    request: Request,
     conversation_id: str,
     body: SendMessageBody,
     current_user=Depends(get_current_user)
@@ -969,6 +1046,14 @@ def send_message(
             "content": body.content.strip()
         }).execute()
 
+        log_action(
+            actor_id=current_user["id"],
+            action="message_sent",
+            target_type="conversation",
+            target_id=conversation_id,
+            details={}
+        )
+
         return {
             "message": "Sent",
             "data": result.data[0]
@@ -981,6 +1066,7 @@ def send_message(
         raise HTTPException(status_code=500, detail=str(e))
     
 
+# This endpoint retrieves the count of unread messages across all conversations for the current user.
 @app.get("/conversations/unread")
 def get_unread_count(current_user=Depends(get_current_user)):
     try:
@@ -1011,3 +1097,18 @@ def get_unread_count(current_user=Depends(get_current_user)):
         print("UNREAD COUNT ERROR:", repr(e))
         raise HTTPException(status_code=500, detail=str(e))
 
+#Admin endoint to view audit logs with pagination and filtering options.
+@app.get("/admin/audit-logs")
+def get_audit_logs(current_user=Depends(require_admin)):
+    try:
+        response = db_supabase.table("audit_logs") \
+            .select("*, actor:users!audit_logs_actor_id_fkey(first_name, last_name, email)") \
+            .order("created_at", desc=True) \
+            .limit(200) \
+            .execute()
+
+        return {"logs": response.data}
+
+    except Exception as e:
+        print("AUDIT LOGS ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))

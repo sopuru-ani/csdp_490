@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "@/components/sidebar";
 import { supabase } from "@/lib/supabase";
+import { apiFetch } from "@/lib/api";
 
 function Messages() {
   const navigate = useNavigate();
@@ -18,9 +19,7 @@ function Messages() {
   useEffect(() => {
     async function init() {
       try {
-        const authRes = await fetch("http://localhost:8000/auth/userchecker", {
-          credentials: "include",
-        });
+        const authRes = await apiFetch("/auth/userchecker");
         if (!authRes.ok) {
           navigate("/login");
           return;
@@ -40,7 +39,7 @@ function Messages() {
 
   async function fetchConversations() {
     try {
-      const res = await fetch("http://localhost:8000/conversations", {
+      const res = await apiFetch("/conversations", {
         credentials: "include",
       });
       if (res.ok) {
@@ -55,30 +54,24 @@ function Messages() {
   // Load messages when conversation selected
   useEffect(() => {
     if (!selectedConvo) return;
-    fetchMessages(selectedConvo.id);
 
-    // Subscribe to new messages via Supabase Realtime
-    const channel = supabase
-      .channel(`messages:${selectedConvo.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `conversation_id=eq.${selectedConvo.id}`,
-        },
-        (payload) => {
-          setMessages((prev) => {
-            // Avoid duplicates
-            if (prev.find((m) => m.id === payload.new.id)) return prev;
-            return [...prev, payload.new];
-          });
-        },
-      )
-      .subscribe();
+    let cancelled = false;
 
-    return () => supabase.removeChannel(channel);
+    async function poll() {
+      if (!cancelled && document.visibilityState === "visible") {
+        await fetchMessages(selectedConvo.id);
+      }
+    }
+
+    poll();
+    const interval = setInterval(poll, 5000);
+    document.addEventListener("visibilitychange", poll);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", poll);
+    };
   }, [selectedConvo]);
 
   // Scroll to bottom when messages update
@@ -88,8 +81,8 @@ function Messages() {
 
   async function fetchMessages(convoId) {
     try {
-      const res = await fetch(
-        `http://localhost:8000/conversations/${convoId}/messages`,
+      const res = await apiFetch(
+        `/conversations/${convoId}/messages`,
         { credentials: "include" },
       );
       if (res.ok) {
@@ -105,8 +98,8 @@ function Messages() {
     if (!input.trim() || sending) return;
     setSending(true);
     try {
-      await fetch(
-        `http://localhost:8000/conversations/${selectedConvo.id}/messages`,
+      await apiFetch(
+        `/conversations/${selectedConvo.id}/messages`,
         {
           method: "POST",
           credentials: "include",

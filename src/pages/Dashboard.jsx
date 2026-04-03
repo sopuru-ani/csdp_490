@@ -4,6 +4,7 @@ import ItemCard from "@/components/ItemCard";
 import ItemDetailModal from "@/components/ItemDetailModal";
 import { useNavigate } from "react-router-dom";
 import { set } from "date-fns";
+import { apiFetch } from "@/lib/api";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -22,9 +23,7 @@ function Dashboard() {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const res = await fetch("http://localhost:8000/auth/userchecker", {
-          credentials: "include",
-        });
+        const res = await apiFetch("/auth/userchecker");
 
         if (!res.ok) {
           navigate("/login");
@@ -49,10 +48,7 @@ function Dashboard() {
 
     async function fetchMyItems() {
       try {
-        const res = await fetch("http://localhost:8000/items/mine", {
-          credentials: "include",
-        });
-
+        const res = await apiFetch("/items/mine");
         if (res.ok) {
           const data = await res.json();
           setItems(data.items);
@@ -66,9 +62,7 @@ function Dashboard() {
 
     async function fetchMyMatches() {
       try {
-        const res = await fetch("http://localhost:8000/items/my-matches", {
-          credentials: "include",
-        });
+        const res = await apiFetch("/items/my-matches");
         if (res.ok) {
           const data = await res.json();
           setMyMatches(data.matches);
@@ -85,9 +79,7 @@ function Dashboard() {
 
   async function fetchAllItems() {
     try {
-      const res = await fetch("http://localhost:8000/items/all", {
-        credentials: "include",
-      });
+      const res = await apiFetch("/items/all");
       if (res.ok) {
         const data = await res.json();
         setAllItems(data.items);
@@ -103,9 +95,8 @@ function Dashboard() {
   // when user clicks "View All Reports" in Admin Panel
 
   async function handleLogout() {
-    await fetch("http://localhost:8000/auth/logout", {
+    await apiFetch("/auth/logout", {
       method: "POST",
-      credentials: "include",
     });
     navigate("/login");
   }

@@ -8,6 +8,7 @@ import ReportFound from "@/pages/ReportFound";
 import AdminMatches from "@/pages/AdminMatches";
 import MyReports from "@/pages/MyReports";
 import Messages from "@/pages/Messages";
+import AuditLogs from "@/pages/AuditLogs";
 
 function AppRoutes() {
   return (
@@ -21,6 +22,7 @@ function AppRoutes() {
       <Route path="/admin/matches" element={<AdminMatches />} />
       <Route path="/my-reports" element={<MyReports />} />
       <Route path="/messages" element={<Messages />} />
+      <Route path="/admin/audit-logs" element={<AuditLogs />} />
     </Routes>
   );
 }

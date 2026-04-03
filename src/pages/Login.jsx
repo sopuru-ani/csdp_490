@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { apiFetch } from "@/lib/api";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -20,10 +21,9 @@ function Login() {
 
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/auth/login", {
+      const res = await apiFetch("/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // needed so the cookie gets saved
         body: JSON.stringify({ email, password }),
       });
 

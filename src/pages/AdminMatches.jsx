@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "@/components/sidebar";
+import { apiFetch } from "@/lib/api";
 
 function AdminMatches() {
   const navigate = useNavigate();
@@ -12,9 +13,7 @@ function AdminMatches() {
   useEffect(() => {
     async function init() {
       try {
-        const authRes = await fetch("http://localhost:8000/auth/userchecker", {
-          credentials: "include",
-        });
+        const authRes = await apiFetch("/auth/userchecker");
         if (!authRes.ok) {
           navigate("/login");
           return;
@@ -31,10 +30,10 @@ function AdminMatches() {
 
       try {
         const [pendingRes, completedRes] = await Promise.all([
-          fetch("http://localhost:8000/admin/matches", {
+          apiFetch("/admin/matches", {
             credentials: "include",
           }),
-          fetch("http://localhost:8000/admin/matches/completed", {
+          apiFetch("/admin/matches/completed", {
             credentials: "include",
           }),
         ]);
@@ -59,15 +58,11 @@ function AdminMatches() {
 
   const handleReview = async (matchId, decision) => {
     try {
-      const res = await fetch(
-        `http://localhost:8000/admin/matches/${matchId}/review`,
-        {
-          method: "PUT",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ decision }),
-        },
-      );
+      const res = await apiFetch(`/admin/matches/${matchId}/review`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision }),
+      });
 
       if (res.ok) {
         const reviewed = pending.find((m) => m.id === matchId);
