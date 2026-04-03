@@ -773,13 +773,24 @@ def review_match(
 
         # If approved, close both items
         if body.decision == "approved":
-            db_supabase.table("items").update({
-                "status": "closed"
-            }).eq("id", match["source_item_id"]).execute()
+            # Close both items
+            db_supabase.table("items").update({"status": "closed"}) \
+                .eq("id", match["source_item_id"]).execute()
+            db_supabase.table("items").update({"status": "closed"}) \
+                .eq("id", match["matched_item_id"]).execute()
 
-            db_supabase.table("items").update({
-                "status": "closed"
-            }).eq("id", match["matched_item_id"]).execute()
+            # Fetch both items to get their owner IDs
+            source = db_supabase.table("items").select("user_id") \
+                .eq("id", match["source_item_id"]).single().execute()
+            matched = db_supabase.table("items").select("user_id") \
+                .eq("id", match["matched_item_id"]).single().execute()
+
+            # Create conversation between the two owners
+            db_supabase.table("conversations").insert({
+                "match_id": match_id,
+                "user_one_id": source.data["user_id"],
+                "user_two_id": matched.data["user_id"]
+            }).execute()
 
         return {
             "message": f"Match {body.decision} successfully.",
@@ -859,3 +870,144 @@ def delete_item(
     except Exception as e:
         print("DELETE ITEM ERROR:", repr(e))
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/conversations")
+def get_my_conversations(current_user=Depends(get_current_user)):
+    try:
+        user_id = current_user["id"]
+
+        response = db_supabase.table("conversations") \
+            .select("""
+                *,
+                match:matches(
+                    similarity_score,
+                    source_item:items!matches_source_item_id_fkey(item_name, item_type),
+                    matched_item:items!matches_matched_item_id_fkey(item_name, item_type)
+                ),
+                user_one:users!conversations_user_one_id_fkey(id, first_name, last_name),
+                user_two:users!conversations_user_two_id_fkey(id, first_name, last_name)
+            """) \
+            .or_(f"user_one_id.eq.{user_id},user_two_id.eq.{user_id}") \
+            .order("created_at", desc=True) \
+            .execute()
+
+        return {"conversations": response.data}
+
+    except Exception as e:
+        print("GET CONVERSATIONS ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/conversations/{conversation_id}/messages")
+def get_messages(
+    conversation_id: str,
+    current_user=Depends(get_current_user)
+):
+    try:
+        user_id = current_user["id"]
+
+        # Verify user belongs to this conversation
+        convo = db_supabase.table("conversations") \
+            .select("*") \
+            .eq("id", conversation_id) \
+            .or_(f"user_one_id.eq.{user_id},user_two_id.eq.{user_id}") \
+            .single() \
+            .execute()
+
+        if not convo.data:
+            raise HTTPException(status_code=403, detail="Not your conversation")
+
+        messages = db_supabase.table("messages") \
+            .select("*, sender:users!messages_sender_id_fkey(id, first_name, last_name)") \
+            .eq("conversation_id", conversation_id) \
+            .order("created_at", asc=True) \
+            .execute()
+
+        # Mark messages as read
+        db_supabase.table("messages") \
+            .update({"read": True}) \
+            .eq("conversation_id", conversation_id) \
+            .neq("sender_id", user_id) \
+            .execute()
+
+        return {"messages": messages.data}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("GET MESSAGES ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+class SendMessageBody(BaseModel):
+    content: str
+
+@app.post("/conversations/{conversation_id}/messages")
+def send_message(
+    conversation_id: str,
+    body: SendMessageBody,
+    current_user=Depends(get_current_user)
+):
+    try:
+        user_id = current_user["id"]
+
+        if not body.content.strip():
+            raise HTTPException(status_code=400, detail="Message cannot be empty")
+
+        # Verify user belongs to this conversation
+        convo = db_supabase.table("conversations") \
+            .select("*") \
+            .eq("id", conversation_id) \
+            .or_(f"user_one_id.eq.{user_id},user_two_id.eq.{user_id}") \
+            .single() \
+            .execute()
+
+        if not convo.data:
+            raise HTTPException(status_code=403, detail="Not your conversation")
+
+        result = db_supabase.table("messages").insert({
+            "conversation_id": conversation_id,
+            "sender_id": user_id,
+            "content": body.content.strip()
+        }).execute()
+
+        return {
+            "message": "Sent",
+            "data": result.data[0]
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("SEND MESSAGE ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+@app.get("/conversations/unread")
+def get_unread_count(current_user=Depends(get_current_user)):
+    try:
+        user_id = current_user["id"]
+
+        # Get all conversation IDs for this user
+        convos = db_supabase.table("conversations") \
+            .select("id") \
+            .or_(f"user_one_id.eq.{user_id},user_two_id.eq.{user_id}") \
+            .execute()
+
+        if not convos.data:
+            return {"unread": 0}
+
+        convo_ids = [c["id"] for c in convos.data]
+
+        # Count unread messages not sent by this user
+        unread = db_supabase.table("messages") \
+            .select("id", count="exact") \
+            .in_("conversation_id", convo_ids) \
+            .eq("read", False) \
+            .neq("sender_id", user_id) \
+            .execute()
+
+        return {"unread": unread.count or 0}
+
+    except Exception as e:
+        print("UNREAD COUNT ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
