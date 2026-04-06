@@ -629,7 +629,14 @@ If no reasonable matches exist, return: []"""
         # Step 6: parse JSON response
         import json
         try:
-            match_results = json.loads(raw)
+            cleaned = raw.strip()
+            if cleaned.startswith("```"):
+                cleaned = cleaned.split("```")[1]
+                if cleaned.startswith("json"):
+                    cleaned = cleaned[4:]
+                cleaned = cleaned.strip()
+
+            match_results = json.loads(cleaned)
         except json.JSONDecodeError:
             print("GEMINI RAW RESPONSE:", raw)
             raise HTTPException(status_code=500, detail="AI returned an unexpected response format.")
