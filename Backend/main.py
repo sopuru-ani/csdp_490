@@ -505,7 +505,8 @@ def update_item(
 
 
 @app.get("/items/{item_id}/matches")
-@limiter.limit("10/minute")
+@limiter.limit("5/minute")
+@limiter.limit("30/day")
 async def find_matches(request: Request, item_id: str, current_user=Depends(get_current_user)):
     try:
         # Step 1: fetch source item
