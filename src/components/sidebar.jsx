@@ -74,7 +74,7 @@ function Sidebar() {
           />
           <NavItem
             icon={<Settings className="w-5 h-5" />}
-            label="Setting"
+            label="Settings"
             collapsed={collapsed}
             href="/settings"
           />
