@@ -11,6 +11,7 @@ import Messages from "@/pages/Messages";
 import AuditLogs from "@/pages/AuditLogs";
 import AdminReports from "@/pages/AdminReports";
 import Dev from "@/pages/Dev";
+import Settings from "@/pages/Settings";
 
 function AppRoutes() {
   return (
@@ -24,6 +25,7 @@ function AppRoutes() {
       <Route path="/admin/matches" element={<AdminMatches />} />
       <Route path="/my-reports" element={<MyReports />} />
       <Route path="/messages" element={<Messages />} />
+      <Route path="/settings" element={<Settings />} />
       <Route path="/admin/audit-logs" element={<AuditLogs />} />
       <Route path="/admin/reports" element={<AdminReports />} />
       <Route path="/dev" element={<Dev />} />

@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from supabase import create_client, Client
 from google.generativeai import types
+from routers import notifications, pushsubs
 import httpx
 
 
@@ -59,6 +60,9 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],)
+
+# app.include_router(notifications.router)
+app.include_router(pushsubs.router)
 
 class SignupRequest(BaseModel):
     email: EmailStr
