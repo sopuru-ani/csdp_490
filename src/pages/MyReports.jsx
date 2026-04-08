@@ -60,8 +60,8 @@ function MyReports() {
     }`;
 
   return (
-    <div className="w-dvw min-h-dvh flex flex-row bg-primary-soft">
-      <Sidebar />
+    <>
+      {/* <Sidebar /> */}
       <div className="p-4 flex-1 flex flex-col gap-4">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -154,7 +154,7 @@ function MyReports() {
           }}
         />
       )}
-    </div>
+    </>
   );
 }
 

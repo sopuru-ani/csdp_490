@@ -1,3 +1,5 @@
+import { MapPin } from "lucide-react";
+
 function ReportCard({ item, onClick }) {
   const isLost = item.item_type === "lost";
   const signedUrls = (item.signed_urls || []).filter(Boolean);
@@ -7,7 +9,7 @@ function ReportCard({ item, onClick }) {
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3 cursor-pointer hover:border-secondary hover:shadow-sm transition-all"
+      className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3 cursor-pointer hover:border-secondary hover:shadow-sm transition-all shadow-md"
     >
       {/* Top row */}
       <div className="flex items-start justify-between gap-3">
@@ -43,7 +45,8 @@ function ReportCard({ item, onClick }) {
 
       {/* Location */}
       <div className="flex items-center gap-1.5">
-        <span className="text-xs text-text-muted">📍</span>
+        {/* <span className="text-xs text-text-muted">📍</span> */}
+        <MapPin className="w-4 h-4 text-text-muted" />
         <p className="text-xs text-text-muted">{item.location}</p>
       </div>
 

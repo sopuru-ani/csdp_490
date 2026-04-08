@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { apiFetch } from "@/lib/api";
 import ReportButton from "@/components/AbuseReportButton";
 
+import { MessageCircleMore } from "lucide-react";
+
 function Messages() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -82,10 +84,9 @@ function Messages() {
 
   async function fetchMessages(convoId) {
     try {
-      const res = await apiFetch(
-        `/conversations/${convoId}/messages`,
-        { credentials: "include" },
-      );
+      const res = await apiFetch(`/conversations/${convoId}/messages`, {
+        credentials: "include",
+      });
       if (res.ok) {
         const data = await res.json();
         setMessages(data.messages);
@@ -99,15 +100,12 @@ function Messages() {
     if (!input.trim() || sending) return;
     setSending(true);
     try {
-      await apiFetch(
-        `/conversations/${selectedConvo.id}/messages`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: input.trim() }),
-        },
-      );
+      await apiFetch(`/conversations/${selectedConvo.id}/messages`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: input.trim() }),
+      });
       setInput("");
     } catch (err) {
       console.error(err);
@@ -122,12 +120,9 @@ function Messages() {
   }
 
   return (
-    <div className="w-dvw min-h-dvh flex flex-row bg-primary-soft">
-      <Sidebar />
-      <div
-        className="flex-1 flex flex-row overflow-hidden"
-        style={{ height: "100dvh" }}
-      >
+    <>
+      {/* <Sidebar /> */}
+      <div className="w-full flex flex-row overflow-hidden h-full -p-3">
         {/* Conversation list */}
         <div className="w-72 border-r border-gray-200 flex flex-col bg-white shrink-0">
           <div className="p-4 border-b border-gray-100">
@@ -143,7 +138,8 @@ function Messages() {
             </div>
           ) : conversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center flex-1 gap-2 px-4 text-center">
-              <p className="text-2xl">💬</p>
+              {/* <p className="text-2xl">💬</p> */}
+              <MessageCircleMore className="w-5 h-5 fill-secondary-muted" />
               <p className="text-sm font-semibold">No conversations yet</p>
               <p className="text-xs text-text-muted">
                 Conversations open when a match is approved by an admin
@@ -189,7 +185,8 @@ function Messages() {
         {/* Message thread */}
         {!selectedConvo ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center">
-            <p className="text-3xl">💬</p>
+            {/* <p className="text-2xl">💬</p> */}
+            <MessageCircleMore className="w-8 h-8 fill-secondary-muted" />
             <p className="font-semibold">Select a conversation</p>
             <p className="text-sm text-text-muted">
               Choose a conversation from the left to start messaging
@@ -276,7 +273,7 @@ function Messages() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder="Type a message..."
-                className="flex-1 outline-none px-3 py-2 rounded-lg bg-primary-soft border border-gray-200 focus:border-secondary focus:ring-1 text-sm"
+                className="flex-1 outline-none px-3 py-2 rounded-lg bg-primary-soft border border-gray-200 focus:border-secondary focus:ring-1 ring-secondary-muted text-sm"
               />
               <button
                 onClick={handleSend}
@@ -289,7 +286,7 @@ function Messages() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }
 

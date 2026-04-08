@@ -57,9 +57,8 @@ function AdminReports() {
       const res = await apiFetch(`/admin/reports/${reportId}/review`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ decision }),
-        },
-      );
+        body: JSON.stringify({ decision }),
+      });
       if (res.ok) {
         setReports((prev) => prev.filter((r) => r.id !== reportId));
       }
@@ -70,7 +69,7 @@ function AdminReports() {
 
   return (
     <div className="w-dvw min-h-dvh flex flex-row bg-primary-soft">
-      <Sidebar />
+      {/* <Sidebar /> */}
       <div className="p-4 flex-1 flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>

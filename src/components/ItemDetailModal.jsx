@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, Trash2, Search } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import ReportButton from "@/components/AbuseReportButton";
-
 
 function ItemDetailModal({
   item,
@@ -370,8 +369,9 @@ function ItemDetailModal({
                   <button
                     onClick={handleDelete}
                     disabled={loading}
-                    className="px-4 py-2 rounded-lg border border-danger text-danger hover:bg-danger-soft text-sm cursor-pointer disabled:opacity-60 transition-colors"
+                    className="px-4 py-2 rounded-lg border border-danger text-danger/50 hover:bg-danger/30 hover:text-danger hover:border-transparent text-sm cursor-pointer disabled:opacity-60 transition-colors flex flex-row items-center justify-center gap-1"
                   >
+                    <Trash2 className="w-4 h-4" />
                     {loading ? "Deleting..." : "Delete"}
                   </button>
                 )}
@@ -384,9 +384,10 @@ function ItemDetailModal({
                 <button
                   onClick={handleFindMatches}
                   disabled={matchesLoading || item.status === "closed"}
-                  className="flex-1 px-4 py-2 rounded-lg border border-secondary text-secondary hover:bg-secondary-soft text-sm cursor-pointer disabled:opacity-60"
+                  className="flex-1 px-4 py-2 rounded-lg border border-secondary text-secondary hover:bg-secondary-muted hover:border-transparent text-sm cursor-pointer disabled:opacity-60 flex flex-row items-center justify-center gap-1"
                 >
-                  {matchesLoading ? "Searching..." : "🔍 Find Matches"}
+                  {!matchesLoading && <Search className="w-4 h-4" />}
+                  {matchesLoading ? "Searching..." : "Find Matches"}
                 </button>
               </>
             ) : (

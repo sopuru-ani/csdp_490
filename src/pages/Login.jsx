@@ -10,7 +10,8 @@ function Login() {
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
 
-  async function handleLogin() {
+  async function handleLogin(e) {
+    e.preventDefault(); // prevents page reload
     setError("");
     setSuccess("");
 
@@ -49,6 +50,7 @@ function Login() {
           <p className="font-bold text-2xl">Welcome Back</p>
           <p>Login to view lost and found items</p>
         </div>
+
         {error && (
           <p className="px-3 py-2 bg-danger-soft border-l-4 border-danger">
             {error}
@@ -59,60 +61,65 @@ function Login() {
             {success}
           </p>
         )}
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-col gap-1">
-            <label htmlFor="email" className="text-sm">
-              Email
-            </label>
-            <input
-              type="text"
-              id="email"
-              placeholder="johnkaisen@jujutsu.high"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="outline-none px-3 py-3 rounded-lg bg-white focus:bg-secondary-soft border border-gray-300 ring-gray-300 focus:ring-1 text-sm"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="flex">
-              <label htmlFor="password" className="text-sm flex-1">
-                Password
+
+        {/* ✅ FORM START */}
+        <form onSubmit={handleLogin} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="email" className="text-sm">
+                Email
               </label>
-              <Link className="text-sm text-secondary hover:text-secondary-hover hover:underline">
-                forgot password?
-              </Link>
+              <input
+                type="text"
+                id="email"
+                placeholder="johnkaisen@jujutsu.high"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="outline-none px-3 py-3 rounded-lg bg-white focus:bg-secondary-soft border border-gray-300 ring-gray-300 focus:ring-1 text-sm"
+              />
             </div>
-            <input
-              type="password"
-              id="password"
-              placeholder=""
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="outline-none px-3 py-3 rounded-lg bg-white focus:bg-secondary-soft border border-gray-300 ring-gray-300 focus:ring-1 text-sm"
-            />
+
+            <div className="flex flex-col gap-1">
+              <div className="flex">
+                <label htmlFor="password" className="text-sm flex-1">
+                  Password
+                </label>
+                <Link className="text-sm text-secondary hover:text-secondary-hover hover:underline">
+                  forgot password?
+                </Link>
+              </div>
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="outline-none px-3 py-3 rounded-lg bg-white focus:bg-secondary-soft border border-gray-300 ring-gray-300 focus:ring-1 text-sm"
+              />
+            </div>
           </div>
-        </div>
-        <div className="flex flex-col gap-4">
+
           <button
-            onClick={handleLogin}
+            type="submit"
             disabled={loading}
             className="px-4 py-3 rounded-lg bg-secondary hover:bg-secondary-hover cursor-pointer text-white flex items-center justify-center gap-2 disabled:opacity-60"
           >
-            Log In{" "}
+            Log In
             {loading && (
               <div className="border-white border-3 border-t-0 border-b-0 rounded-full w-4 h-4 animate-spin"></div>
             )}
           </button>
-          <p className="text-center">
-            Don't have an account?{" "}
-            <Link
-              to="/signup"
-              className="text-secondary hover:text-secondary-hover"
-            >
-              Sign up
-            </Link>
-          </p>
-        </div>
+        </form>
+        {/* ✅ FORM END */}
+
+        <p className="text-center">
+          Don't have an account?{" "}
+          <Link
+            to="/signup"
+            className="text-secondary hover:text-secondary-hover"
+          >
+            Sign up
+          </Link>
+        </p>
       </div>
     </div>
   );
