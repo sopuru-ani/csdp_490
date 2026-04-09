@@ -1,4 +1,8 @@
-// public/sw.js
+// src/sw.js
+import { precacheAndRoute } from "workbox-precaching";
+
+// Precache Vite assets
+precacheAndRoute(self.__WB_MANIFEST);
 
 const SW_VERSION = "lostlink-sw-v2";
 const CACHE_NAME = SW_VERSION;
@@ -67,7 +71,7 @@ self.addEventListener("fetch", (event) => {
     );
 });
 
-// ─── Push ──────────────────────────────────────────────────────────────────
+// ─── Push Notifications ─────────────────────────────────────────────────────
 self.addEventListener("push", (event) => {
     console.log("[SW] Push received:", event);
 
@@ -76,9 +80,7 @@ self.addEventListener("push", (event) => {
         body: "You have a new notification.",
         icon: "/cat.jpeg",
         tag: "lostlink-default",
-        data: {
-            url: "/",
-        },
+        data: { url: "/" },
     };
 
     if (event.data) {
@@ -101,10 +103,8 @@ self.addEventListener("push", (event) => {
     );
 });
 
-// ─── Notification Click ────────────────────────────────────────────────────
 self.addEventListener("notificationclick", (event) => {
     console.log("[SW] Notification clicked:", event.notification);
-
     event.notification.close();
 
     const targetUrl = event.notification.data?.url ?? "/";
@@ -112,19 +112,13 @@ self.addEventListener("notificationclick", (event) => {
     event.waitUntil(
         clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
             for (const client of clientList) {
-                if (client.url.includes(targetUrl) && "focus" in client) {
-                    return client.focus();
-                }
+                if (client.url.includes(targetUrl) && "focus" in client) return client.focus();
             }
-
-            if (clients.openWindow) {
-                return clients.openWindow(targetUrl);
-            }
+            if (clients.openWindow) return clients.openWindow(targetUrl);
         })
     );
 });
 
-// ─── Notification Close ────────────────────────────────────────────────────
 self.addEventListener("notificationclose", (event) => {
     console.log("[SW] Notification dismissed:", event.notification.tag);
 });
