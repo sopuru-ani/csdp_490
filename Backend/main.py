@@ -1,4 +1,5 @@
 import os
+import re
 from click import prompt
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Response, Request, Depends, File, UploadFile
@@ -35,6 +36,23 @@ supabase_url=os.getenv("SUPABASE_URL")
 supabase_anon_key=os.getenv("SUPABASE_ANON_KEY")
 supabase_service_role_key=os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 frontend_url=os.getenv("FRONTEND_URL", "http://localhost:5173")
+frontend_urls_raw = os.getenv("FRONTEND_URLS", "")
+vercel_project_slug = os.getenv("VERCEL_PROJECT_SLUG", "csdp-490")
+
+allowed_origins = {
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+}
+
+if frontend_url:
+    allowed_origins.add(frontend_url.rstrip("/"))
+
+for origin in frontend_urls_raw.split(","):
+    cleaned_origin = origin.strip().rstrip("/")
+    if cleaned_origin:
+        allowed_origins.add(cleaned_origin)
+
+vercel_origin_regex = rf"^https://{re.escape(vercel_project_slug)}(?:-[a-z0-9-]+)?\.vercel\.app$"
 
 # Ensure all required environment variables are set
 if not supabase_url or not supabase_anon_key:
@@ -56,10 +74,12 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_url],
+    allow_origins=sorted(allowed_origins),
+    allow_origin_regex=vercel_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],)
+    allow_headers=["*"],
+)
 
 # app.include_router(notifications.router)
 app.include_router(pushsubs.router)

@@ -12,6 +12,7 @@ export default defineConfig({
       strategies: "injectManifest",
       registerType: "autoUpdate",
       injectRegister: "auto",
+      useCredentials: true,
       srcDir: "src",
       filename: "sw.js",
       manifest: {
