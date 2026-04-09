@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./components/sidebar";
 
@@ -6,7 +6,24 @@ import { PanelLeft } from "lucide-react";
 
 function Overview() {
   const [user, setUser] = useState(null); // Placeholder user data
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+
+    const handleChange = (e) => {
+      setCollapsed(e.matches); // true if <=768px
+    };
+
+    // set initial value
+    setCollapsed(mediaQuery.matches);
+
+    // listen for changes
+    mediaQuery.addEventListener("change", handleChange);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleChange);
+    };
+  }, []);
   return (
     <>
       <div className="w-dvw min-h-dvh h-auto flex flex-row bg-primary-soft">
