@@ -139,13 +139,13 @@ function Dashboard() {
     <>
       {/* <Sidebar /> */}
       {/* <div className="h-dvh flex-1 overflow-y-scroll"> */}
-      <div className="w-full p-6 flex flex-col gap-6">
+      <div className="w-full p-3 sm:p-4 md:p-6 flex flex-col gap-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <p className="font-bold text-2xl md:text-3xl">
             Welcome back, {user.first_name}!
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {user.is_admin && (
               <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-secondary text-white shadow-sm">
                 Admin
@@ -156,7 +156,7 @@ function Dashboard() {
 
         {/* Tabs — only show if admin */}
         {user.is_admin && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button className={tabClass("my")} onClick={() => setTab("my")}>
               My Reports
             </button>
@@ -182,25 +182,31 @@ function Dashboard() {
             {/* Quick Actions */}
             <div className="flex flex-col gap-4">
               <p className="font-bold text-2xl">Quick Actions</p>
-              <div className="w-full flex flex-row gap-4">
+              <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div
-                  className="flex-1 flex border-dashed border-2 border-secondary-muted rounded-2xl h-36 bg-secondary-soft hover:bg-secondary-muted cursor-pointer justify-center items-center shadow-md transition-all duration-200 hover:shadow-lg"
+                  className="flex flex-col border-dashed border-2 border-secondary-muted rounded-2xl min-h-32 bg-secondary-soft hover:bg-secondary-muted cursor-pointer justify-center items-center shadow-md transition-all duration-200 hover:shadow-lg text-center px-4 py-6"
                   onClick={() => navigate("/reportlost")}
                 >
                   <p className="text-sm font-semibold">Report Lost Item</p>
+                  <p className="text-xs text-text-muted mt-1">
+                    Quick report with key details
+                  </p>
                 </div>
                 <div
-                  className="flex-1 flex border-dashed border-2 border-secondary-muted rounded-2xl h-36 bg-secondary-soft hover:bg-secondary-muted cursor-pointer justify-center items-center shadow-md transition-all duration-200 hover:shadow-lg"
+                  className="flex flex-col border-dashed border-2 border-secondary-muted rounded-2xl min-h-32 bg-secondary-soft hover:bg-secondary-muted cursor-pointer justify-center items-center shadow-md transition-all duration-200 hover:shadow-lg text-center px-4 py-6"
                   onClick={() => navigate("/reportfound")}
                 >
                   <p className="text-sm font-semibold">Report Found Item</p>
+                  <p className="text-xs text-text-muted mt-1">
+                    Help return an item quickly
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* My Reports */}
             <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <p className="font-bold text-2xl">My Reports</p>
                 <button
                   onClick={() => navigate("/my-reports")}
@@ -251,7 +257,7 @@ function Dashboard() {
         {tab === "admin" && (
           <>
             {/* Stat cards */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard
                 label="Total open items"
                 value={allItems.length}
@@ -285,16 +291,16 @@ function Dashboard() {
             </div>
 
             {/* Admin quick actions */}
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => navigate("/admin/matches")}
-                className="flex-1 px-4 py-3 rounded-lg bg-secondary hover:bg-secondary-hover text-white text-sm font-semibold cursor-pointer transition-colors"
+                className="flex-1 px-4 py-3 rounded-xl bg-secondary hover:bg-secondary-hover text-white text-sm font-semibold cursor-pointer transition-all duration-200 shadow-sm"
               >
                 Pending Matches {pendingCount > 0 && `(${pendingCount})`}
               </button>
               <button
                 onClick={() => navigate("/admin/audit-logs")}
-                className="flex-1 px-4 py-3 rounded-lg border border-gray-300 hover:bg-primary-muted text-sm font-semibold cursor-pointer transition-colors"
+                className="flex-1 px-4 py-3 rounded-xl border border-gray-300 hover:bg-primary-muted text-sm font-semibold cursor-pointer transition-all duration-200"
               >
                 Audit Logs
               </button>
@@ -314,33 +320,37 @@ function Dashboard() {
                 <>
                   {/* Lost */}
                   {allLost.length > 0 && (
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-3">
                       <p className="font-semibold text-sm text-danger">
                         Lost ({allLost.length})
                       </p>
-                      {allLost.map((item) => (
-                        <ItemCard
-                          key={item.id}
-                          item={item}
-                          onClick={() => setSelectedItem(item)}
-                        />
-                      ))}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {allLost.map((item) => (
+                          <ItemCard
+                            key={item.id}
+                            item={item}
+                            onClick={() => setSelectedItem(item)}
+                          />
+                        ))}
+                      </div>
                     </div>
                   )}
 
                   {/* Found */}
                   {allFound.length > 0 && (
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-3">
                       <p className="font-semibold text-sm text-success">
                         Found ({allFound.length})
                       </p>
-                      {allFound.map((item) => (
-                        <ItemCard
-                          key={item.id}
-                          item={item}
-                          onClick={() => setSelectedItem(item)}
-                        />
-                      ))}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {allFound.map((item) => (
+                          <ItemCard
+                            key={item.id}
+                            item={item}
+                            onClick={() => setSelectedItem(item)}
+                          />
+                        ))}
+                      </div>
                     </div>
                   )}
                 </>

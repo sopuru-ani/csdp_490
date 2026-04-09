@@ -194,8 +194,8 @@ function ReportForm({ type = "lost" }) {
     } ring-secondary-muted hover:bg-secondary-soft focus:ring-2 text-sm cursor-pointer transition-all duration-200`;
 
   return (
-    <div className="w-full min-h-screen flex flex-col justify-center items-center p-6 bg-primary-soft">
-      <div className="w-full max-w-150 p-6 rounded-2xl bg-white border border-gray-200 shadow-md flex flex-col gap-6">
+    <div className="w-full min-h-screen flex flex-col justify-center items-center p-3 sm:p-4 md:p-6 bg-primary-soft">
+      <div className="w-full max-w-150 p-4 sm:p-6 rounded-2xl bg-white border border-gray-200 shadow-md flex flex-col gap-6">
         {/* Header */}
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 mb-1">
@@ -333,7 +333,7 @@ function ReportForm({ type = "lost" }) {
           {isLost ? (
             <div className="flex flex-col gap-1">
               <label className="text-sm">Date Lost</label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* From date */}
                 <div className="flex flex-col gap-1">
                   <label className="text-xs text-text-muted">From</label>

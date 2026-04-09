@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { apiFetch } from "@/lib/api";
 import ReportButton from "@/components/AbuseReportButton";
 
-import { MessageCircleMore } from "lucide-react";
+import { MessageCircleMore, ArrowLeft } from "lucide-react";
 
 function Messages() {
   const navigate = useNavigate();
@@ -122,80 +122,70 @@ function Messages() {
   return (
     <>
       {/* <Sidebar /> */}
-      <div className="w-full h-full p-6 flex flex-row gap-6 overflow-hidden">
-        {/* Conversation list */}
-        <div className="w-80 border border-gray-200 flex flex-col bg-white shrink-0 rounded-2xl shadow-md overflow-hidden">
-          <div className="p-5 border-b border-gray-100">
-            <p className="font-bold text-xl">Messages</p>
-            <p className="text-xs text-text-muted">
-              Approved match conversations
-            </p>
-          </div>
-
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="border-secondary border-3 border-t-0 border-b-0 rounded-full w-6 h-6 animate-spin" />
-            </div>
-          ) : conversations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center flex-1 gap-2 px-4 text-center">
-              {/* <p className="text-2xl">💬</p> */}
-              <MessageCircleMore className="w-5 h-5 fill-secondary-muted" />
-              <p className="text-sm font-semibold">No conversations yet</p>
+      <div className="w-full h-full p-3 sm:p-4 md:p-6 flex flex-col overflow-hidden">
+        {!selectedConvo ? (
+          <div className="w-full border border-gray-200 flex flex-col bg-white rounded-2xl shadow-md overflow-hidden">
+            <div className="p-5 border-b border-gray-100">
+              <p className="font-bold text-xl">Messages</p>
               <p className="text-xs text-text-muted">
-                Conversations open when a match is approved by an admin
+                Approved match conversations
               </p>
             </div>
-          ) : (
-            <div className="flex flex-col overflow-y-auto">
-              {conversations.map((convo) => {
-                const other = getOtherUser(convo);
-                const isSelected = selectedConvo?.id === convo.id;
-                return (
-                  <div
-                    key={convo.id}
-                    onClick={() => setSelectedConvo(convo)}
-                    className={`mx-3 my-2 p-4 cursor-pointer rounded-xl border border-gray-100 transition-all duration-200 ${
-                      isSelected
-                        ? "bg-secondary-soft border-secondary shadow-sm"
-                        : "hover:bg-primary-soft hover:shadow-sm"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-white text-sm font-semibold shrink-0">
-                        {other?.first_name?.[0]}
-                        {other?.last_name?.[0]}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm truncate">
-                          {other?.first_name} {other?.last_name}
-                        </p>
-                        <p className="text-xs text-text-muted truncate">
-                          {convo.match?.source_item?.item_name} ↔{" "}
-                          {convo.match?.matched_item?.item_name}
-                        </p>
+
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <div className="border-secondary border-3 border-t-0 border-b-0 rounded-full w-6 h-6 animate-spin" />
+              </div>
+            ) : conversations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center flex-1 gap-2 px-4 text-center py-10">
+                <MessageCircleMore className="w-6 h-6 fill-secondary-muted" />
+                <p className="text-sm font-semibold">No conversations yet</p>
+                <p className="text-xs text-text-muted">
+                  Conversations open when a match is approved by an admin
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col overflow-y-auto">
+                {conversations.map((convo) => {
+                  const other = getOtherUser(convo);
+                  return (
+                    <div
+                      key={convo.id}
+                      onClick={() => setSelectedConvo(convo)}
+                      className="mx-3 my-2 p-4 cursor-pointer rounded-xl border border-gray-100 transition-all duration-200 hover:bg-primary-soft hover:shadow-sm"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-white text-sm font-semibold shrink-0">
+                          {other?.first_name?.[0]}
+                          {other?.last_name?.[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">
+                            {other?.first_name} {other?.last_name}
+                          </p>
+                          <p className="text-xs text-text-muted truncate">
+                            {convo.match?.source_item?.item_name} ↔{" "}
+                            {convo.match?.matched_item?.item_name}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Message thread */}
-        {!selectedConvo ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center">
-            {/* <p className="text-2xl">💬</p> */}
-            <MessageCircleMore className="w-8 h-8 fill-secondary-muted" />
-            <p className="font-semibold">Select a conversation</p>
-            <p className="text-sm text-text-muted">
-              Choose a conversation from the left to start messaging
-            </p>
+                  );
+                })}
+              </div>
+            )}
           </div>
         ) : (
-          <div className="flex-1 flex flex-col bg-white rounded-2xl border border-gray-200 shadow-md overflow-hidden">
+          <div className="w-full flex flex-col bg-white rounded-2xl border border-gray-200 shadow-md overflow-hidden">
             {/* Thread header */}
             <div className="p-5 border-b border-gray-200 bg-white flex items-center gap-3">
+              <button
+                onClick={() => setSelectedConvo(null)}
+                className="p-2 rounded-lg hover:bg-primary-muted transition-all duration-200"
+                aria-label="Back to conversations"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
               {(() => {
                 const other = getOtherUser(selectedConvo);
                 return (
@@ -249,7 +239,6 @@ function Messages() {
                         })}
                       </p>
                     </div>
-                    {/* Report button — only on other people's messages */}
                     {!isMine && (
                       <div className="mt-0.5 px-1">
                         <ReportButton
@@ -266,7 +255,7 @@ function Messages() {
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t border-gray-200 bg-white flex gap-3">
+            <div className="p-4 border-t border-gray-200 bg-white flex flex-col sm:flex-row gap-3">
               <input
                 type="text"
                 value={input}
@@ -278,7 +267,7 @@ function Messages() {
               <button
                 onClick={handleSend}
                 disabled={sending || !input.trim()}
-                className="px-4 py-2 rounded-xl bg-secondary hover:bg-secondary-hover text-white text-sm cursor-pointer disabled:opacity-60 transition-all duration-200 shadow-sm"
+                className="px-4 py-2 rounded-xl bg-secondary hover:bg-secondary-hover text-white text-sm cursor-pointer disabled:opacity-60 transition-all duration-200 shadow-sm w-full sm:w-auto"
               >
                 {sending ? "..." : "Send"}
               </button>
@@ -291,3 +280,4 @@ function Messages() {
 }
 
 export default Messages;
+

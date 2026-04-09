@@ -194,7 +194,7 @@ function ItemDetailModal({
     >
       {/* Modal — stop clicks from closing when clicking inside */}
       <div
-        className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto flex flex-col gap-5 p-6 relative shadow-lg"
+        className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto flex flex-col gap-5 p-4 sm:p-6 relative shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -239,7 +239,7 @@ function ItemDetailModal({
 
         {/* Images */}
         {signedUrls.length > 0 && (
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {signedUrls.map((url, i) => (
               <img
                 key={i}

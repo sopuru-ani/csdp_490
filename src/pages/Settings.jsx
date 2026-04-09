@@ -275,8 +275,8 @@ function Settings() {
   }
 
   return (
-    <div className="p-6 flex-1 flex flex-col gap-6">
-      <div className="flex items-center gap-4">
+    <div className="p-3 sm:p-4 md:p-6 flex-1 flex flex-col gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="w-12 h-12 rounded-full bg-primary-muted flex items-center justify-center text-lg font-bold">
           {initials}
         </div>
@@ -339,7 +339,7 @@ function Settings() {
             {passwordStatus.message && (
               <StatusBadge status={passwordStatus} />
             )}
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-col sm:flex-row sm:justify-end gap-2">
               <button
                 onClick={handlePasswordSave}
                 className="px-4 py-2 rounded-xl border border-secondary text-secondary hover:bg-secondary-soft text-sm cursor-pointer transition-all duration-200"
@@ -458,7 +458,7 @@ function Settings() {
             setPrivacyPrefs((prev) => ({ ...prev, allowMessages: value }))
           }
         />
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <button
             onClick={handlePrivacySave}
             className="px-4 py-2 rounded-xl bg-secondary hover:bg-secondary-hover text-white text-sm cursor-pointer transition-all duration-200 shadow-sm"
@@ -467,7 +467,7 @@ function Settings() {
           </button>
           <button
             onClick={handleDeleteAccount}
-            className="px-4 py-2 rounded-xl border border-danger text-danger hover:bg-danger-soft text-sm cursor-pointer flex items-center gap-2 transition-all duration-200"
+            className="px-4 py-2 rounded-xl border border-danger text-danger hover:bg-danger-soft text-sm cursor-pointer flex items-center justify-center gap-2 transition-all duration-200 w-full sm:w-auto text-center"
           >
             <Trash2 className="w-4 h-4" />
             Delete Account
