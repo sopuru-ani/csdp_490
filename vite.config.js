@@ -13,8 +13,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       injectRegister: "auto",
       injectManifest: {
-        swSrc: path.resolve(__dirname, "src/sw.js"), // <-- source SW
-        swDest: "sw.js", // <-- output SW in build root
+        swSrc: "src/sw.js", // use source SW from src/, no public/sw.js needed
+        swDest: "sw.js", // output SW in build root
       },
       manifest: {
         name: "LostLink",
