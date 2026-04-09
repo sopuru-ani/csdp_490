@@ -70,7 +70,7 @@ function ReportButton({ targetType, targetId, reportedUserId }) {
           onClick={() => setOpen(false)}
         >
           <div
-            className="bg-white rounded-xl w-full max-w-sm p-5 flex flex-col gap-4"
+            className="bg-white rounded-2xl w-full max-w-sm p-6 flex flex-col gap-4 shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
             <div>
@@ -93,7 +93,7 @@ function ReportButton({ targetType, targetId, reportedUserId }) {
                 {REASONS.map((r) => (
                   <label
                     key={r.value}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-primary-soft cursor-pointer"
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-primary-soft cursor-pointer transition-all duration-200 border border-transparent hover:border-secondary-muted"
                   >
                     <input
                       type="radio"
@@ -120,21 +120,21 @@ function ReportButton({ targetType, targetId, reportedUserId }) {
                 onChange={(e) => setDetails(e.target.value)}
                 placeholder="Describe what happened..."
                 rows={2}
-                className="outline-none px-3 py-2 rounded-lg bg-white border border-gray-300 focus:border-secondary focus:ring-1 text-sm resize-none"
+                className="outline-none px-3 py-2.5 rounded-xl bg-white border border-gray-300 focus:border-secondary focus:ring-2 ring-secondary-muted text-sm resize-none transition-all duration-200"
               />
             </div>
 
             <div className="flex gap-2">
               <button
                 onClick={() => setOpen(false)}
-                className="flex-1 px-4 py-2 rounded-lg border border-gray-300 hover:bg-primary-muted text-sm cursor-pointer"
+                className="flex-1 px-4 py-2 rounded-xl border border-gray-300 hover:bg-primary-muted text-sm cursor-pointer transition-all duration-200"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={loading}
-                className="flex-1 px-4 py-2 rounded-lg bg-danger hover:bg-danger-hover text-white text-sm cursor-pointer disabled:opacity-60"
+                className="flex-1 px-4 py-2 rounded-xl bg-danger hover:bg-danger-hover text-white text-sm cursor-pointer disabled:opacity-60 transition-all duration-200 shadow-sm"
               >
                 {loading ? "Submitting..." : "Submit Report"}
               </button>

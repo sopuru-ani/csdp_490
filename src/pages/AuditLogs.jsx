@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "@/components/sidebar";
 import { apiFetch } from "@/lib/api";
 
+import { ClipboardListIcon } from "lucide-react";
+
 const ACTION_LABELS = {
   match_approved: {
     label: "Match approved",
@@ -117,7 +119,8 @@ function AuditLogs() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-2">
-            <p className="text-3xl">📋</p>
+            {/* <p className="text-3xl">📋</p> */}
+            <ClipboardListIcon className="w-8 h-8" />
             <p className="font-semibold">No logs yet</p>
           </div>
         ) : (

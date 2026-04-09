@@ -115,14 +115,6 @@ function Dashboard() {
     }
   }
 
-  async function handleLogout() {
-    await apiFetch("/auth/logout", {
-      method: "POST",
-      credentials: "include",
-    });
-    navigate("/login");
-  }
-
   if (loading) {
     return (
       <div className="w-full min-h-dvh flex items-center justify-center bg-primary-soft">
@@ -137,9 +129,9 @@ function Dashboard() {
   const allFound = allItems.filter((i) => i.item_type === "found");
 
   const tabClass = (t) =>
-    `px-4 py-2 text-sm font-semibold rounded-lg cursor-pointer transition-colors ${
+    `px-4 py-2.5 text-sm font-semibold rounded-xl cursor-pointer transition-all duration-200 ${
       tab === t
-        ? "bg-secondary text-white"
+        ? "bg-secondary text-white shadow-sm"
         : "text-text-muted hover:bg-primary-muted"
     }`;
 
@@ -147,22 +139,18 @@ function Dashboard() {
     <>
       {/* <Sidebar /> */}
       {/* <div className="h-dvh flex-1 overflow-y-scroll"> */}
-      <div className="w-full p-3 flex flex-col gap-4">
+      <div className="w-full p-6 flex flex-col gap-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <p className="font-bold text-2xl">Welcome back, {user.first_name}!</p>
+          <p className="font-bold text-2xl md:text-3xl">
+            Welcome back, {user.first_name}!
+          </p>
           <div className="flex items-center gap-2">
             {user.is_admin && (
-              <span className="text-xs font-semibold p-2 rounded-full bg-secondary text-white">
+              <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-secondary text-white shadow-sm">
                 Admin
               </span>
             )}
-            <button
-              onClick={handleLogout}
-              className="text-sm px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-danger-soft hover:border-danger hover:text-danger transition-colors cursor-pointer"
-            >
-              Log out
-            </button>
           </div>
         </div>
 
@@ -193,19 +181,19 @@ function Dashboard() {
           <>
             {/* Quick Actions */}
             <div className="flex flex-col gap-4">
-              <p className="font-bold text-xl">Quick Actions</p>
+              <p className="font-bold text-2xl">Quick Actions</p>
               <div className="w-full flex flex-row gap-4">
                 <div
-                  className="flex-1 flex border-dashed border-2 rounded-sm h-32 bg-secondary-soft hover:bg-secondary-muted cursor-pointer justify-center items-center shadow-md"
+                  className="flex-1 flex border-dashed border-2 border-secondary-muted rounded-2xl h-36 bg-secondary-soft hover:bg-secondary-muted cursor-pointer justify-center items-center shadow-md transition-all duration-200 hover:shadow-lg"
                   onClick={() => navigate("/reportlost")}
                 >
-                  <p>Report Lost Item</p>
+                  <p className="text-sm font-semibold">Report Lost Item</p>
                 </div>
                 <div
-                  className="flex-1 flex border-dashed border-2 rounded-sm h-32 bg-secondary-soft hover:bg-secondary-muted cursor-pointer justify-center items-center shadow-md"
+                  className="flex-1 flex border-dashed border-2 border-secondary-muted rounded-2xl h-36 bg-secondary-soft hover:bg-secondary-muted cursor-pointer justify-center items-center shadow-md transition-all duration-200 hover:shadow-lg"
                   onClick={() => navigate("/reportfound")}
                 >
-                  <p>Report Found Item</p>
+                  <p className="text-sm font-semibold">Report Found Item</p>
                 </div>
               </div>
             </div>
@@ -213,10 +201,10 @@ function Dashboard() {
             {/* My Reports */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <p className="font-bold text-xl">My Reports</p>
+                <p className="font-bold text-2xl">My Reports</p>
                 <button
                   onClick={() => navigate("/my-reports")}
-                  className="text-xs text-secondary hover:underline cursor-pointer"
+                  className="text-xs text-secondary hover:underline cursor-pointer transition-colors"
                 >
                   View all →
                 </button>
@@ -231,7 +219,7 @@ function Dashboard() {
                   You haven't submitted any reports yet.
                 </p>
               ) : (
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-3">
                   {/* Show latest 3 only — link to full list */}
                   {items.slice(0, 3).map((item) => (
                     <ItemCard
@@ -248,7 +236,7 @@ function Dashboard() {
                   {items.length > 3 && (
                     <button
                       onClick={() => navigate("/my-reports")}
-                      className="text-xs text-secondary hover:underline cursor-pointer text-center py-1"
+                      className="text-xs text-secondary hover:underline cursor-pointer text-center py-1 transition-colors"
                     >
                       +{items.length - 3} more — view all reports
                     </button>
@@ -314,7 +302,7 @@ function Dashboard() {
 
             {/* All items */}
             <div className="flex flex-col gap-3">
-              <p className="font-bold text-xl">All Open Reports</p>
+              <p className="font-bold text-2xl">All Open Reports</p>
 
               {allItemsLoading ? (
                 <div className="flex justify-center py-6">
@@ -390,8 +378,8 @@ function StatCard({ label, value, sub, color, onClick, clickable }) {
   return (
     <div
       onClick={onClick}
-      className={`${color} rounded-xl p-4 flex flex-col gap-1 ${
-        clickable ? "cursor-pointer hover:opacity-80 transition-opacity" : ""
+      className={`${color} rounded-2xl p-4 flex flex-col gap-1 border border-gray-200 shadow-md transition-all duration-200 ${
+        clickable ? "cursor-pointer hover:shadow-lg hover:-translate-y-0.5" : ""
       }`}
     >
       <p className="text-xs text-text-muted font-semibold">{label}</p>

@@ -9,7 +9,7 @@ function ReportCard({ item, onClick }) {
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3 cursor-pointer hover:border-secondary hover:shadow-sm transition-all shadow-md"
+      className="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col gap-4 cursor-pointer hover:border-secondary hover:shadow-lg transition-all duration-200 shadow-md"
     >
       {/* Top row */}
       <div className="flex items-start justify-between gap-3">
@@ -51,7 +51,7 @@ function ReportCard({ item, onClick }) {
       </div>
 
       {/* Bottom row — images + submitted date */}
-      <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
         <div className="flex items-center gap-3">
           {signedUrls.length > 0 ? (
             <div className="flex items-center gap-1.5">

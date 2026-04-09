@@ -122,11 +122,11 @@ function Messages() {
   return (
     <>
       {/* <Sidebar /> */}
-      <div className="w-full flex flex-row overflow-hidden h-full -p-3">
+      <div className="w-full h-full p-6 flex flex-row gap-6 overflow-hidden">
         {/* Conversation list */}
-        <div className="w-72 border-r border-gray-200 flex flex-col bg-white shrink-0">
-          <div className="p-4 border-b border-gray-100">
-            <p className="font-bold text-lg">Messages</p>
+        <div className="w-80 border border-gray-200 flex flex-col bg-white shrink-0 rounded-2xl shadow-md overflow-hidden">
+          <div className="p-5 border-b border-gray-100">
+            <p className="font-bold text-xl">Messages</p>
             <p className="text-xs text-text-muted">
               Approved match conversations
             </p>
@@ -154,10 +154,10 @@ function Messages() {
                   <div
                     key={convo.id}
                     onClick={() => setSelectedConvo(convo)}
-                    className={`p-4 cursor-pointer border-b border-gray-50 transition-colors ${
+                    className={`mx-3 my-2 p-4 cursor-pointer rounded-xl border border-gray-100 transition-all duration-200 ${
                       isSelected
-                        ? "bg-secondary-soft border-l-2 border-l-secondary"
-                        : "hover:bg-primary-soft"
+                        ? "bg-secondary-soft border-secondary shadow-sm"
+                        : "hover:bg-primary-soft hover:shadow-sm"
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -193,9 +193,9 @@ function Messages() {
             </p>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col bg-white rounded-2xl border border-gray-200 shadow-md overflow-hidden">
             {/* Thread header */}
-            <div className="p-4 border-b border-gray-200 bg-white flex items-center gap-3">
+            <div className="p-5 border-b border-gray-200 bg-white flex items-center gap-3">
               {(() => {
                 const other = getOtherUser(selectedConvo);
                 return (
@@ -219,7 +219,7 @@ function Messages() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+            <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-3">
               {messages.length === 0 && (
                 <p className="text-xs text-text-muted text-center py-4">
                   No messages yet — say hello!
@@ -233,10 +233,10 @@ function Messages() {
                     className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
                   >
                     <div
-                      className={`max-w-xs px-3 py-2 rounded-xl text-sm ${
+                      className={`max-w-sm px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
                         isMine
-                          ? "bg-secondary text-white rounded-br-sm"
-                          : "bg-white border border-gray-200 rounded-bl-sm"
+                          ? "bg-secondary text-white rounded-br-md"
+                          : "bg-white border border-gray-200 rounded-bl-md"
                       }`}
                     >
                       <p>{msg.content}</p>
@@ -266,19 +266,19 @@ function Messages() {
             </div>
 
             {/* Input */}
-            <div className="p-3 border-t border-gray-200 bg-white flex gap-2">
+            <div className="p-4 border-t border-gray-200 bg-white flex gap-3">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder="Type a message..."
-                className="flex-1 outline-none px-3 py-2 rounded-lg bg-primary-soft border border-gray-200 focus:border-secondary focus:ring-1 ring-secondary-muted text-sm"
+                className="flex-1 outline-none px-4 py-2.5 rounded-xl bg-primary-soft border border-gray-200 focus:border-secondary focus:ring-2 ring-secondary-muted text-sm transition-all duration-200"
               />
               <button
                 onClick={handleSend}
                 disabled={sending || !input.trim()}
-                className="px-4 py-2 rounded-lg bg-secondary hover:bg-secondary-hover text-white text-sm cursor-pointer disabled:opacity-60 transition-colors"
+                className="px-4 py-2 rounded-xl bg-secondary hover:bg-secondary-hover text-white text-sm cursor-pointer disabled:opacity-60 transition-all duration-200 shadow-sm"
               >
                 {sending ? "..." : "Send"}
               </button>

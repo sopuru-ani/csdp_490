@@ -183,19 +183,19 @@ function ReportForm({ type = "lost" }) {
   };
 
   const inputClass = (field) =>
-    `outline-none px-3 py-3 rounded-lg bg-white focus:bg-secondary-soft border ${
+    `outline-none px-4 py-3 rounded-xl bg-white focus:bg-secondary-soft border ${
       errors[field] ? "border-danger" : "border-gray-300"
-    } ring-gray-300 focus:ring-1 text-sm w-full`;
+    } ring-secondary-muted focus:ring-2 text-sm w-full transition-all duration-200`;
 
   // Shared style for the date trigger button
   const dateTriggerClass = (field, hasValue) =>
-    `flex items-center justify-between w-full px-3 py-3 rounded-lg bg-white border ${
+    `flex items-center justify-between w-full px-4 py-3 rounded-xl bg-white border ${
       errors[field] ? "border-danger" : "border-gray-300"
-    } ring-gray-300 hover:bg-secondary-soft focus:ring-1 text-sm cursor-pointer transition-colors`;
+    } ring-secondary-muted hover:bg-secondary-soft focus:ring-2 text-sm cursor-pointer transition-all duration-200`;
 
   return (
-    <div className="w-full min-h-screen flex flex-col justify-center items-center p-4 bg-primary-soft ">
-      <div className="w-full max-w-150 p-4 rounded-md flex flex-col gap-4">
+    <div className="w-full min-h-screen flex flex-col justify-center items-center p-6 bg-primary-soft">
+      <div className="w-full max-w-150 p-6 rounded-2xl bg-white border border-gray-200 shadow-md flex flex-col gap-6">
         {/* Header */}
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 mb-1">
@@ -209,7 +209,7 @@ function ReportForm({ type = "lost" }) {
               {isLost ? "Lost Item" : "Found Item"}
             </span>
           </div>
-          <p className="font-bold text-2xl">
+          <p className="font-bold text-3xl">
             {isLost ? "Report a Lost Item" : "Report a Found Item"}
           </p>
           <p className="text-sm text-text-secondary">
@@ -221,18 +221,18 @@ function ReportForm({ type = "lost" }) {
 
         {/* Global error / success */}
         {error && (
-          <p className="px-3 py-2 bg-danger-soft border-l-4 border-danger text-sm">
+          <p className="px-3 py-2 bg-danger-soft border-l-4 border-danger text-sm rounded-lg">
             {error}
           </p>
         )}
         {success && (
-          <p className="px-3 py-2 bg-success-soft border-l-4 border-success text-sm">
+          <p className="px-3 py-2 bg-success-soft border-l-4 border-success text-sm rounded-lg">
             {success}
           </p>
         )}
 
         {/* Fields */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           {/* Item Title */}
           <div className="flex flex-col gap-1">
             <label htmlFor="title" className="text-sm">
@@ -262,9 +262,9 @@ function ReportForm({ type = "lost" }) {
               }
             >
               <SelectTrigger
-                className={`h-auto p-3 rounded-lg bg-white border ${
+                className={`h-auto p-3.5 rounded-xl bg-white border ${
                   errors.category ? "border-danger" : "border-gray-300"
-                } ring-gray-300 focus:ring-1 focus-visible:ring-1 text-sm border-gray-300 hover:bg-secondary-soft transition-colors`}
+                } ring-secondary-muted focus:ring-2 focus-visible:ring-2 text-sm border-gray-300 hover:bg-secondary-soft transition-all duration-200`}
               >
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
@@ -452,7 +452,7 @@ function ReportForm({ type = "lost" }) {
             {images.length < 5 && (
               <label
                 htmlFor="image"
-                className="flex flex-col items-center justify-center gap-2 px-3 py-6 rounded-lg bg-white border border-dashed border-gray-300 hover:bg-secondary-soft hover:border-secondary cursor-pointer transition-colors"
+                className="flex flex-col items-center justify-center gap-2 px-4 py-7 rounded-2xl bg-white border border-dashed border-gray-300 hover:bg-secondary-soft hover:border-secondary cursor-pointer transition-all duration-200 shadow-sm"
               >
                 <Upload className="w-5 h-5 text-text-muted" />
                 <span className="text-sm text-text-muted">
@@ -475,11 +475,11 @@ function ReportForm({ type = "lost" }) {
 
             {/* Previews grid */}
             {previews.length > 0 && (
-              <div className="grid grid-cols-3 gap-2 mt-1">
+              <div className="grid grid-cols-3 gap-3 mt-1">
                 {previews.map((src, i) => (
                   <div
                     key={i}
-                    className="relative rounded-lg overflow-hidden border border-gray-300"
+                    className="relative rounded-xl overflow-hidden border border-gray-300 shadow-sm"
                   >
                     <img
                       src={src}
@@ -489,7 +489,7 @@ function ReportForm({ type = "lost" }) {
                     <button
                       type="button"
                       onClick={() => removeImage(i)}
-                      className="absolute top-1 right-1 bg-white rounded-full w-5 h-5 flex items-center justify-center text-danger text-xs shadow cursor-pointer hover:bg-danger-soft"
+                      className="absolute top-1 right-1 bg-white rounded-full w-6 h-6 flex items-center justify-center text-danger text-xs shadow-sm cursor-pointer hover:bg-danger-soft transition-all duration-200"
                     >
                       ✕
                     </button>
@@ -504,7 +504,7 @@ function ReportForm({ type = "lost" }) {
         <button
           onClick={handleSubmit}
           disabled={loading || !!success}
-          className="px-4 py-3 rounded-lg bg-secondary hover:bg-secondary-hover cursor-pointer text-white flex items-center justify-center gap-2 disabled:opacity-60"
+          className="px-4 py-3 rounded-xl bg-secondary hover:bg-secondary-hover cursor-pointer text-white flex items-center justify-center gap-2 disabled:opacity-60 transition-all duration-200 shadow-sm"
         >
           {isLost ? "Submit Lost Report" : "Submit Found Report"}
           {loading ? (
@@ -514,11 +514,11 @@ function ReportForm({ type = "lost" }) {
           )}
         </button>
 
-        <p className="text-center text-sm">
+        <p className="text-center text-sm text-text-muted">
           Changed your mind?{" "}
           <a
             href="/dashboard"
-            className="text-secondary hover:text-secondary-hover"
+            className="text-secondary hover:text-secondary-hover transition-colors"
           >
             Go back to dashboard
           </a>
