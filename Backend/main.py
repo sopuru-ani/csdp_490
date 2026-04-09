@@ -243,13 +243,13 @@ def get_current_user(request: Request):
 
 @app.get("/auth/userchecker")
 def auth_me(current_user=Depends(get_current_user)):
-    return {
-        "id": current_user["id"],
-        "email": current_user["email"],
-        "first_name": current_user["first_name"],
-        "last_name": current_user["last_name"],
-        "is_admin": current_user["is_admin"]
-    }
+    # return {
+    #     "id": current_user["id"],
+    #     "email": current_user["email"],
+    #     "first_name": current_user["first_name"],
+    #     "last_name": current_user["last_name"],
+    #     "is_admin": current_user["is_admin"]
+    # }
     access_token = request.cookies.get("access_token")
 
     if not access_token:
