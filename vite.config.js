@@ -12,10 +12,8 @@ export default defineConfig({
       strategies: "injectManifest",
       registerType: "autoUpdate",
       injectRegister: "auto",
-      injectManifest: {
-        swSrc: "src/sw.js", // use source SW from src/, no public/sw.js needed
-        swDest: "sw.js", // output SW in build root
-      },
+      srcDir: "src",
+      filename: "sw.js",
       manifest: {
         name: "LostLink",
         short_name: "LostLink",
