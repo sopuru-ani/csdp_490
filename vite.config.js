@@ -12,9 +12,14 @@ export default defineConfig({
       strategies: "injectManifest",
       registerType: "autoUpdate",
       injectRegister: "auto",
-      useCredentials: true,
       srcDir: "src",
       filename: "sw.js",
+      includeAssets: [
+        "favicon.ico",
+        "apple-touch-icon.png",
+        "offline.html",
+        "cat.jpeg"
+      ],
       manifest: {
         name: "LostLink",
         short_name: "LostLink",
@@ -23,14 +28,29 @@ export default defineConfig({
         background_color: "#0f172a",
         display: "standalone",
         start_url: "/",
+        scope: "/",
         icons: [
-          { src: "/pwa-192x192.png", sizes: "192x192", type: "image/png" },
-          { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png" },
-          { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
-        ],
+          {
+            src: "/pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any"
+          },
+          {
+            src: "/pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any"
+          },
+          {
+            src: "/pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable"
+          }
+        ]
       },
-      includeAssets: ["offline.html", "cat.jpeg"],
-      devOptions: { enabled: true },
+      devOptions: { enabled: true }
     }),
   ],
   resolve: {
