@@ -53,6 +53,9 @@ export default defineConfig({
       devOptions: { enabled: true }
     }),
   ],
+  preview: {
+    allowedHosts: ["wanted-undertone-flattery.ngrok-free.dev"],
+  },
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },
   },

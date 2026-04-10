@@ -136,12 +136,12 @@ def signup(request: Request, request_data: SignupRequest):
     try:
         auth_response = auth_supabase.auth.sign_up(
             {
-                "email": request.email,
-                "password": request.password,
+                "email": request_data.email,
+                "password": request_data.password,
                 "options": {
                     "data": {
-                        "firstName": request.first_name,
-                        "lastName": request.last_name
+                        "firstName": request_data.first_name,
+                        "lastName": request_data.last_name
                     }
                 }
             }
@@ -154,9 +154,9 @@ def signup(request: Request, request_data: SignupRequest):
         insert_response = db_supabase.table("users").insert(
             {
                 "id": user_id,
-                "first_name": request.first_name,
-                "last_name": request.last_name,
-                "email": request.email,
+                "first_name": request_data.first_name,
+                "last_name": request_data.last_name,
+                "email": request_data.email,
                 "is_admin": False
             }
         ).execute()
