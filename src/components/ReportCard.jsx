@@ -1,3 +1,5 @@
+import { MapPin } from "lucide-react";
+
 function ReportCard({ item, onClick }) {
   const isLost = item.item_type === "lost";
   const signedUrls = (item.signed_urls || []).filter(Boolean);
@@ -7,10 +9,10 @@ function ReportCard({ item, onClick }) {
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3 cursor-pointer hover:border-secondary hover:shadow-sm transition-all"
+      className="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col gap-4 cursor-pointer hover:border-secondary-muted hover:shadow-lg transition-all duration-200 shadow-md"
     >
       {/* Top row */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div className="flex flex-col gap-1 flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span
@@ -43,13 +45,14 @@ function ReportCard({ item, onClick }) {
 
       {/* Location */}
       <div className="flex items-center gap-1.5">
-        <span className="text-xs text-text-muted">📍</span>
+        {/* <span className="text-xs text-text-muted">📍</span> */}
+        <MapPin className="w-4 h-4 text-text-muted" />
         <p className="text-xs text-text-muted">{item.location}</p>
       </div>
 
       {/* Bottom row — images + submitted date */}
-      <div className="flex items-center justify-between pt-1 border-t border-gray-100">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-gray-100">
+        <div className="flex flex-wrap items-center gap-3">
           {signedUrls.length > 0 ? (
             <div className="flex items-center gap-1.5">
               <div className="flex -space-x-2">

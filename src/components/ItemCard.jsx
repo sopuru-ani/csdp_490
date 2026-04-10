@@ -1,3 +1,5 @@
+import { Box } from "lucide-react";
+
 function ItemCard({ item, onClick, pendingMatch }) {
   const isLost = item.item_type === "lost";
   const date = isLost ? item.date_lost_from : item.date_found;
@@ -6,10 +8,10 @@ function ItemCard({ item, onClick, pendingMatch }) {
   return (
     <div
       onClick={onClick}
-      className="flex flex-row items-start gap-3 p-3 rounded-lg bg-white border border-gray-200 cursor-pointer hover:border-secondary hover:shadow-sm transition-all"
+      className="flex flex-col sm:flex-row items-start gap-4 p-4 rounded-2xl bg-white border border-gray-200 cursor-pointer hover:border-secondary-muted hover:shadow-lg transition-all duration-200 shadow-md"
     >
       {/* Thumbnail */}
-      <div className="shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-primary-soft flex items-center justify-center">
+      <div className="shrink-0 w-full sm:w-16 h-40 sm:h-16 rounded-xl overflow-hidden border border-gray-200 bg-primary-soft flex items-center justify-center shadow-sm">
         {signedUrls.length > 0 ? (
           <img
             src={signedUrls[0]}
@@ -17,7 +19,8 @@ function ItemCard({ item, onClick, pendingMatch }) {
             className="w-full h-full object-cover"
           />
         ) : (
-          <span className="text-2xl">📦</span>
+          // <span className="text-2xl">📦</span>
+          <Box className="w-9 h-9" />
         )}
       </div>
 

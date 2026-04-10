@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { apiFetch } from "@/lib/api";
 import ReportButton from "@/components/AbuseReportButton";
 
+import { MessageCircleMore, ArrowLeft } from "lucide-react";
+
 function Messages() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -82,10 +84,9 @@ function Messages() {
 
   async function fetchMessages(convoId) {
     try {
-      const res = await apiFetch(
-        `/conversations/${convoId}/messages`,
-        { credentials: "include" },
-      );
+      const res = await apiFetch(`/conversations/${convoId}/messages`, {
+        credentials: "include",
+      });
       if (res.ok) {
         const data = await res.json();
         setMessages(data.messages);
@@ -99,15 +100,12 @@ function Messages() {
     if (!input.trim() || sending) return;
     setSending(true);
     try {
-      await apiFetch(
-        `/conversations/${selectedConvo.id}/messages`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: input.trim() }),
-        },
-      );
+      await apiFetch(`/conversations/${selectedConvo.id}/messages`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: input.trim() }),
+      });
       setInput("");
     } catch (err) {
       console.error(err);
@@ -122,83 +120,72 @@ function Messages() {
   }
 
   return (
-    <div className="w-dvw min-h-dvh flex flex-row bg-primary-soft">
-      <Sidebar />
-      <div
-        className="flex-1 flex flex-row overflow-hidden"
-        style={{ height: "100dvh" }}
-      >
-        {/* Conversation list */}
-        <div className="w-72 border-r border-gray-200 flex flex-col bg-white shrink-0">
-          <div className="p-4 border-b border-gray-100">
-            <p className="font-bold text-lg">Messages</p>
-            <p className="text-xs text-text-muted">
-              Approved match conversations
-            </p>
-          </div>
-
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="border-secondary border-3 border-t-0 border-b-0 rounded-full w-6 h-6 animate-spin" />
-            </div>
-          ) : conversations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center flex-1 gap-2 px-4 text-center">
-              <p className="text-2xl">💬</p>
-              <p className="text-sm font-semibold">No conversations yet</p>
+    <>
+      {/* <Sidebar /> */}
+      <div className="w-full h-full p-3 sm:p-4 md:p-6 flex flex-col overflow-hidden">
+        {!selectedConvo ? (
+          <div className="w-full border border-gray-200 flex flex-col bg-white rounded-2xl shadow-md overflow-hidden">
+            <div className="p-5 border-b border-gray-100">
+              <p className="font-bold text-xl">Messages</p>
               <p className="text-xs text-text-muted">
-                Conversations open when a match is approved by an admin
+                Approved match conversations
               </p>
             </div>
-          ) : (
-            <div className="flex flex-col overflow-y-auto">
-              {conversations.map((convo) => {
-                const other = getOtherUser(convo);
-                const isSelected = selectedConvo?.id === convo.id;
-                return (
-                  <div
-                    key={convo.id}
-                    onClick={() => setSelectedConvo(convo)}
-                    className={`p-4 cursor-pointer border-b border-gray-50 transition-colors ${
-                      isSelected
-                        ? "bg-secondary-soft border-l-2 border-l-secondary"
-                        : "hover:bg-primary-soft"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-white text-sm font-semibold shrink-0">
-                        {other?.first_name?.[0]}
-                        {other?.last_name?.[0]}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm truncate">
-                          {other?.first_name} {other?.last_name}
-                        </p>
-                        <p className="text-xs text-text-muted truncate">
-                          {convo.match?.source_item?.item_name} ↔{" "}
-                          {convo.match?.matched_item?.item_name}
-                        </p>
+
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <div className="border-secondary border-3 border-t-0 border-b-0 rounded-full w-6 h-6 animate-spin" />
+              </div>
+            ) : conversations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center flex-1 gap-2 px-4 text-center py-10">
+                <MessageCircleMore className="w-6 h-6 fill-secondary-muted" />
+                <p className="text-sm font-semibold">No conversations yet</p>
+                <p className="text-xs text-text-muted">
+                  Conversations open when a match is approved by an admin
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col overflow-y-auto">
+                {conversations.map((convo) => {
+                  const other = getOtherUser(convo);
+                  return (
+                    <div
+                      key={convo.id}
+                      onClick={() => setSelectedConvo(convo)}
+                      className="mx-3 my-2 p-4 cursor-pointer rounded-xl border border-gray-100 transition-all duration-200 hover:bg-primary-soft hover:shadow-sm"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-white text-sm font-semibold shrink-0">
+                          {other?.first_name?.[0]}
+                          {other?.last_name?.[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">
+                            {other?.first_name} {other?.last_name}
+                          </p>
+                          <p className="text-xs text-text-muted truncate">
+                            {convo.match?.source_item?.item_name} ↔{" "}
+                            {convo.match?.matched_item?.item_name}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Message thread */}
-        {!selectedConvo ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center">
-            <p className="text-3xl">💬</p>
-            <p className="font-semibold">Select a conversation</p>
-            <p className="text-sm text-text-muted">
-              Choose a conversation from the left to start messaging
-            </p>
+                  );
+                })}
+              </div>
+            )}
           </div>
         ) : (
-          <div className="flex-1 flex flex-col">
+          <div className="w-full flex flex-col bg-white rounded-2xl border border-gray-200 shadow-md overflow-hidden">
             {/* Thread header */}
-            <div className="p-4 border-b border-gray-200 bg-white flex items-center gap-3">
+            <div className="p-5 border-b border-gray-200 bg-white flex items-center gap-3">
+              <button
+                onClick={() => setSelectedConvo(null)}
+                className="p-2 rounded-lg hover:bg-primary-muted transition-all duration-200"
+                aria-label="Back to conversations"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
               {(() => {
                 const other = getOtherUser(selectedConvo);
                 return (
@@ -222,7 +209,7 @@ function Messages() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+            <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-3">
               {messages.length === 0 && (
                 <p className="text-xs text-text-muted text-center py-4">
                   No messages yet — say hello!
@@ -236,10 +223,10 @@ function Messages() {
                     className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
                   >
                     <div
-                      className={`max-w-xs px-3 py-2 rounded-xl text-sm ${
+                      className={`max-w-sm px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
                         isMine
-                          ? "bg-secondary text-white rounded-br-sm"
-                          : "bg-white border border-gray-200 rounded-bl-sm"
+                          ? "bg-secondary text-white rounded-br-md"
+                          : "bg-white border border-gray-200 rounded-bl-md"
                       }`}
                     >
                       <p>{msg.content}</p>
@@ -252,7 +239,6 @@ function Messages() {
                         })}
                       </p>
                     </div>
-                    {/* Report button — only on other people's messages */}
                     {!isMine && (
                       <div className="mt-0.5 px-1">
                         <ReportButton
@@ -269,19 +255,19 @@ function Messages() {
             </div>
 
             {/* Input */}
-            <div className="p-3 border-t border-gray-200 bg-white flex gap-2">
+            <div className="p-4 border-t border-gray-200 bg-white flex flex-col sm:flex-row gap-3">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder="Type a message..."
-                className="flex-1 outline-none px-3 py-2 rounded-lg bg-primary-soft border border-gray-200 focus:border-secondary focus:ring-1 text-sm"
+                className="flex-1 outline-none px-4 py-2.5 rounded-xl bg-primary-soft border border-gray-200 focus:border-secondary focus:ring-2 ring-secondary-muted text-sm transition-all duration-200"
               />
               <button
                 onClick={handleSend}
                 disabled={sending || !input.trim()}
-                className="px-4 py-2 rounded-lg bg-secondary hover:bg-secondary-hover text-white text-sm cursor-pointer disabled:opacity-60 transition-colors"
+                className="px-4 py-2 rounded-xl bg-secondary hover:bg-secondary-hover text-white text-sm cursor-pointer disabled:opacity-60 transition-all duration-200 shadow-sm w-full sm:w-auto"
               >
                 {sending ? "..." : "Send"}
               </button>
@@ -289,8 +275,9 @@ function Messages() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }
 
 export default Messages;
+

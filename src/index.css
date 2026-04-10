@@ -263,7 +263,7 @@
    CUSTOM SCROLLBAR
    ============================================================ */
 
-::-webkit-scrollbar {
+/* ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
@@ -279,4 +279,19 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-muted);
+} */
+
+/* Chrome, Safari, Edge */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: none;
+}
+
+/* IE/old Edge */
+* {
+  -ms-overflow-style: none;
 }

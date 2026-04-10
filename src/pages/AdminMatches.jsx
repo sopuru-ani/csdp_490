@@ -88,8 +88,8 @@ function AdminMatches() {
 
   return (
     <div className="w-dvw min-h-dvh flex flex-row bg-primary-soft">
-      <Sidebar />
-      <div className="p-4 flex-1 flex flex-col gap-4">
+      {/* <Sidebar /> */}
+      <div className="p-3 sm:p-4 md:p-6 flex-1 flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="font-bold text-2xl">Match Review</p>
@@ -100,7 +100,7 @@ function AdminMatches() {
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             className={tabClass("pending")}
             onClick={() => setTab("pending")}
@@ -178,10 +178,10 @@ function MatchReviewCard({ match, mode, onApprove, onReject }) {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
       {/* Requester */}
       {match.requester && (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-white text-xs font-semibold">
             {match.requester.first_name?.[0]}
             {match.requester.last_name?.[0]}
@@ -192,7 +192,7 @@ function MatchReviewCard({ match, mode, onApprove, onReject }) {
             </p>
             <p className="text-xs text-text-muted">{match.requester.email}</p>
           </div>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="sm:ml-auto flex items-center gap-2">
             {mode === "completed" && (
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-success-soft text-success">
                 Approved
@@ -206,7 +206,7 @@ function MatchReviewCard({ match, mode, onApprove, onReject }) {
       )}
 
       {/* Items side by side */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <ItemSummary item={match.source_item} label="Their item" />
         <ItemSummary item={match.matched_item} label="Matched with" />
       </div>
@@ -229,11 +229,11 @@ function MatchReviewCard({ match, mode, onApprove, onReject }) {
 
       {/* Action row */}
       {mode === "pending" && (
-        <div className="flex items-center justify-between px-3 py-2 bg-warning-soft rounded-lg border border-warning">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-3 py-2 bg-warning-soft rounded-lg border border-warning">
           <p className="text-xs font-semibold text-warning">
             Action required — approve or reject this match
           </p>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <button
               onClick={() => handle("rejected", onReject)}
               disabled={!!deciding}

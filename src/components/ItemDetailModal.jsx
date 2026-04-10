@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, Trash2, Search } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import ReportButton from "@/components/AbuseReportButton";
-
 
 function ItemDetailModal({
   item,
@@ -177,7 +176,7 @@ function ItemDetailModal({
       <button
         onClick={handleRequest}
         disabled={status === "loading"}
-        className="self-start text-xs px-3 py-1.5 rounded-lg border border-secondary text-secondary hover:bg-secondary-soft cursor-pointer disabled:opacity-60 transition-colors"
+        className="self-start text-xs px-3 py-1.5 rounded-xl border border-secondary text-secondary hover:bg-secondary-soft cursor-pointer disabled:opacity-60 transition-all duration-200"
       >
         {status === "loading" ? "Requesting..." : "Request this match"}
       </button>
@@ -185,7 +184,7 @@ function ItemDetailModal({
   }
 
   const inputClass =
-    "outline-none px-3 py-2 rounded-lg bg-white focus:bg-secondary-soft border border-gray-300 focus:ring-1 text-sm w-full";
+    "outline-none px-3 py-2.5 rounded-xl bg-white focus:bg-secondary-soft border border-gray-300 focus:ring-2 ring-secondary-muted text-sm w-full transition-all duration-200";
 
   return (
     // Backdrop
@@ -195,7 +194,7 @@ function ItemDetailModal({
     >
       {/* Modal — stop clicks from closing when clicking inside */}
       <div
-        className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto flex flex-col gap-4 p-5 relative"
+        className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto flex flex-col gap-5 p-4 sm:p-6 relative shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -219,7 +218,7 @@ function ItemDetailModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-primary-muted rounded-sm cursor-pointer"
+            className="p-2 hover:bg-primary-muted rounded-lg cursor-pointer transition-all duration-200"
           >
             <X className="w-5 h-5" />
           </button>
@@ -227,7 +226,7 @@ function ItemDetailModal({
 
         {/* Admin: reporter info */}
         {isAdmin && item.users && (
-          <div className="px-3 py-2 bg-secondary-soft rounded-lg text-sm">
+          <div className="px-3 py-2 bg-secondary-soft rounded-xl text-sm shadow-sm">
             <p className="font-semibold text-xs text-text-muted mb-0.5">
               Reported by
             </p>
@@ -240,13 +239,13 @@ function ItemDetailModal({
 
         {/* Images */}
         {signedUrls.length > 0 && (
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {signedUrls.map((url, i) => (
               <img
                 key={i}
                 src={url}
                 alt={`Photo ${i + 1}`}
-                className="w-full h-28 object-cover rounded-lg border border-gray-200"
+                className="w-full h-28 object-cover rounded-xl border border-gray-200"
               />
             ))}
           </div>
@@ -254,12 +253,12 @@ function ItemDetailModal({
 
         {/* Error / success */}
         {error && (
-          <p className="px-3 py-2 bg-danger-soft border-l-4 border-danger text-sm">
+          <p className="px-3 py-2 bg-danger-soft border-l-4 border-danger text-sm rounded-lg">
             {error}
           </p>
         )}
         {success && (
-          <p className="px-3 py-2 bg-success-soft border-l-4 border-success text-sm">
+          <p className="px-3 py-2 bg-success-soft border-l-4 border-success text-sm rounded-lg">
             {success}
           </p>
         )}
@@ -348,7 +347,7 @@ function ItemDetailModal({
         )}
 
         {!isOwner && (
-          <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
+          <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
             <p className="text-xs text-text-muted flex-1">
               Something wrong with this report?
             </p>
@@ -362,7 +361,7 @@ function ItemDetailModal({
 
         {/* Footer buttons — only for owner */}
         {isOwner && (
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2 pt-2">
             {!editing ? (
               <>
                 {/* Only allow delete on open items */}
@@ -370,23 +369,25 @@ function ItemDetailModal({
                   <button
                     onClick={handleDelete}
                     disabled={loading}
-                    className="px-4 py-2 rounded-lg border border-danger text-danger hover:bg-danger-soft text-sm cursor-pointer disabled:opacity-60 transition-colors"
+                    className="px-4 py-2 rounded-xl border border-danger text-danger/50 hover:bg-danger/30 hover:text-danger hover:border-transparent text-sm cursor-pointer disabled:opacity-60 transition-all duration-200 flex flex-row items-center justify-center gap-1"
                   >
+                    <Trash2 className="w-4 h-4" />
                     {loading ? "Deleting..." : "Delete"}
                   </button>
                 )}
                 <button
                   onClick={() => setEditing(true)}
-                  className="flex-1 px-4 py-2 rounded-lg bg-secondary hover:bg-secondary-hover text-white text-sm cursor-pointer"
+                  className="flex-1 px-4 py-2 rounded-xl bg-secondary hover:bg-secondary-hover text-white text-sm cursor-pointer transition-all duration-200 shadow-sm"
                 >
                   Edit
                 </button>
                 <button
                   onClick={handleFindMatches}
                   disabled={matchesLoading || item.status === "closed"}
-                  className="flex-1 px-4 py-2 rounded-lg border border-secondary text-secondary hover:bg-secondary-soft text-sm cursor-pointer disabled:opacity-60"
+                  className="flex-1 px-4 py-2 rounded-xl border border-secondary text-secondary hover:bg-secondary-muted hover:border-transparent text-sm cursor-pointer disabled:opacity-60 flex flex-row items-center justify-center gap-1 transition-all duration-200"
                 >
-                  {matchesLoading ? "Searching..." : "🔍 Find Matches"}
+                  {!matchesLoading && <Search className="w-4 h-4" />}
+                  {matchesLoading ? "Searching..." : "Find Matches"}
                 </button>
               </>
             ) : (
@@ -396,14 +397,14 @@ function ItemDetailModal({
                     setEditing(false);
                     setError("");
                   }}
-                  className="flex-1 px-4 py-2 rounded-lg border border-gray-300 hover:bg-primary-muted text-sm cursor-pointer"
+                  className="flex-1 px-4 py-2 rounded-xl border border-gray-300 hover:bg-primary-muted text-sm cursor-pointer transition-all duration-200"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={loading}
-                  className="flex-1 px-4 py-2 rounded-lg bg-secondary hover:bg-secondary-hover text-white text-sm cursor-pointer disabled:opacity-60"
+                  className="flex-1 px-4 py-2 rounded-xl bg-secondary hover:bg-secondary-hover text-white text-sm cursor-pointer disabled:opacity-60 transition-all duration-200 shadow-sm"
                 >
                   {loading ? "Saving..." : "Save Changes"}
                 </button>
@@ -414,7 +415,7 @@ function ItemDetailModal({
 
         {/* Match Results */}
         {matches !== null && (
-          <div className="flex flex-col gap-2 border-t border-gray-100 pt-3">
+          <div className="flex flex-col gap-3 border-t border-gray-100 pt-4">
             <p className="font-semibold text-sm">
               {matches.length > 0
                 ? `${matches.length} potential match${matches.length > 1 ? "es" : ""} found`
@@ -424,7 +425,7 @@ function ItemDetailModal({
             {matches.map((match, i) => (
               <div
                 key={i}
-                className="flex flex-col gap-2 p-3 rounded-lg border border-gray-200 bg-primary-soft"
+                className="flex flex-col gap-2 p-4 rounded-2xl border border-gray-200 bg-primary-soft shadow-sm"
               >
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-sm">
