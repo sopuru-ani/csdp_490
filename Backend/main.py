@@ -1,5 +1,4 @@
 import os
-import re
 from click import prompt
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Response, Request, Depends, File, UploadFile
@@ -10,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from supabase import create_client, Client
 from google.generativeai import types
-from routers import notifications, pushsubs
+from routers import notifications, pushsubs, users, messaging
 import httpx
 
 
@@ -26,6 +25,12 @@ limiter = Limiter(key_func=get_remote_address)
 
 load_dotenv()
 
+# Production-aware cookie settings
+# Set ENV=production on your Render backend to activate secure cross-site cookies
+IS_PRODUCTION = os.getenv("ENV", "").lower() == "production"
+COOKIE_SECURE = IS_PRODUCTION
+COOKIE_SAMESITE = "none" if IS_PRODUCTION else "lax"
+
 # Load Gemini API key and configure the client
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
@@ -36,39 +41,6 @@ supabase_url=os.getenv("SUPABASE_URL")
 supabase_anon_key=os.getenv("SUPABASE_ANON_KEY")
 supabase_service_role_key=os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 frontend_url=os.getenv("FRONTEND_URL", "http://localhost:5173")
-frontend_urls_raw = os.getenv("FRONTEND_URLS", "")
-vercel_project_slug = os.getenv("VERCEL_PROJECT_SLUG", "csdp-490")
-
-def env_flag(name: str, default: bool = False) -> bool:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    return value.strip().lower() in {"1", "true", "t", "yes", "y", "on"}
-
-allowed_origins = {
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://csdp490.qr-manager.net"
-}
-
-if frontend_url:
-    allowed_origins.add(frontend_url.rstrip("/"))
-
-for origin in frontend_urls_raw.split(","):
-    cleaned_origin = origin.strip().rstrip("/")
-    if cleaned_origin:
-        allowed_origins.add(cleaned_origin)
-
-vercel_origin_regex = rf"^https://{re.escape(vercel_project_slug)}(?:-[a-z0-9-]+)?\.vercel\.app$"
-
-is_production = env_flag("PRODUCTION", False) or os.getenv("ENV", "").lower() == "production" or os.getenv("RENDER") is not None
-cookie_secure = env_flag("COOKIE_SECURE", is_production)
-cookie_samesite = (os.getenv("COOKIE_SAMESITE") or ("none" if cookie_secure else "lax")).strip().lower()
-if cookie_samesite == "none":
-    cookie_secure = True
-if cookie_samesite not in {"lax", "strict", "none"}:
-    raise ValueError("COOKIE_SAMESITE must be one of: lax, strict, none")
-cookie_domain = (os.getenv("COOKIE_DOMAIN") or "").strip() or None
 
 # Ensure all required environment variables are set
 if not supabase_url or not supabase_anon_key:
@@ -90,15 +62,15 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=sorted(allowed_origins),
-    allow_origin_regex=vercel_origin_regex,
+    allow_origins=[frontend_url],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
-)
+    allow_headers=["*"],)
 
-# app.include_router(notifications.router)
+#app.include_router(notifications.router)
 app.include_router(pushsubs.router)
+app.include_router(users.router)
+app.include_router(messaging.router)
 
 class SignupRequest(BaseModel):
     email: EmailStr
@@ -136,12 +108,12 @@ def signup(request: Request, request_data: SignupRequest):
     try:
         auth_response = auth_supabase.auth.sign_up(
             {
-                "email": request.email,
-                "password": request.password,
+                "email": request_data.email,
+                "password": request_data.password,
                 "options": {
                     "data": {
-                        "firstName": request.first_name,
-                        "lastName": request.last_name
+                        "firstName": request_data.first_name,
+                        "lastName": request_data.last_name
                     }
                 }
             }
@@ -154,9 +126,9 @@ def signup(request: Request, request_data: SignupRequest):
         insert_response = db_supabase.table("users").insert(
             {
                 "id": user_id,
-                "first_name": request.first_name,
-                "last_name": request.last_name,
-                "email": request.email,
+                "first_name": request_data.first_name,
+                "last_name": request_data.last_name,
+                "email": request_data.email,
                 "is_admin": False
             }
         ).execute()
@@ -194,22 +166,18 @@ def login(request: Request, request_data: LoginRequest, response: Response):
             key="access_token",
             value=access_token,
             httponly=True,
-            secure=cookie_secure,
-            samesite=cookie_samesite,
-            max_age=60 * 60,
-            path="/",
-            domain=cookie_domain,
+            secure=COOKIE_SECURE,
+            samesite=COOKIE_SAMESITE,
+            max_age=60 * 60
         )
 
         response.set_cookie(
             key="refresh_token",
             value=refresh_token,
             httponly=True,
-            secure=cookie_secure,
-            samesite=cookie_samesite,
-            max_age=60 * 60 * 24 * 7,
-            path="/",
-            domain=cookie_domain,
+            secure=COOKIE_SECURE,
+            samesite=COOKIE_SAMESITE,
+            max_age=60 * 60 * 24 * 7
         )
 
         return {
@@ -223,16 +191,18 @@ def login(request: Request, request_data: LoginRequest, response: Response):
     
 @app.post("/auth/logout")
 def logout(response: Response):
-    response.delete_cookie(key="access_token", path="/", domain=cookie_domain)
-    response.delete_cookie(key="refresh_token", path="/", domain=cookie_domain)
+    response.delete_cookie(key="access_token", httponly=True, secure=COOKIE_SECURE, samesite=COOKIE_SAMESITE)
+    response.delete_cookie(key="refresh_token", httponly=True, secure=COOKIE_SECURE, samesite=COOKIE_SAMESITE)
     return {"message": "Logout successful"}
 
 def get_current_user(request: Request):
     access_token = request.cookies.get("access_token")
-    authorization = request.headers.get("authorization")
 
-    if not access_token and authorization and authorization.lower().startswith("bearer "):
-        access_token = authorization.split(" ", 1)[1].strip()
+    # Bearer token fallback — supports mobile clients and contexts where cookies are blocked
+    if not access_token:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            access_token = auth_header[len("Bearer "):]
 
     if not access_token:
         raise HTTPException(status_code=401, detail="Not authenticated")
