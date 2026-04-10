@@ -8,7 +8,7 @@ function ItemCard({ item, onClick, pendingMatch }) {
   return (
     <div
       onClick={onClick}
-      className="flex flex-col sm:flex-row items-start gap-4 p-4 rounded-2xl bg-white border border-gray-200 cursor-pointer hover:border-secondary hover:shadow-lg transition-all duration-200 shadow-md"
+      className="flex flex-col sm:flex-row items-start gap-4 p-4 rounded-2xl bg-white border border-gray-200 cursor-pointer hover:border-secondary-muted hover:shadow-lg transition-all duration-200 shadow-md"
     >
       {/* Thumbnail */}
       <div className="shrink-0 w-full sm:w-16 h-40 sm:h-16 rounded-xl overflow-hidden border border-gray-200 bg-primary-soft flex items-center justify-center shadow-sm">

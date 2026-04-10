@@ -9,7 +9,7 @@ function ReportCard({ item, onClick }) {
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col gap-4 cursor-pointer hover:border-secondary hover:shadow-lg transition-all duration-200 shadow-md"
+      className="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col gap-4 cursor-pointer hover:border-secondary-muted hover:shadow-lg transition-all duration-200 shadow-md"
     >
       {/* Top row */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
