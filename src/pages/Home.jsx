@@ -1,5 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 import {
   Search,
   Shield,
@@ -12,18 +14,52 @@ import {
   MapPin,
   Clock,
   Heart,
+  Download,
 } from "lucide-react";
 
 function Home() {
   const navigate = useNavigate();
+  const [connectedMsg, setConnectedMsg] = useState(false);
+  const [disconnectedMsg, setDisconnectedMsg] = useState(false);
+  const { isInstallable, installPWA } = usePWAInstall();
+
+  useEffect(() => {
+    console.log(navigator.getGamepads());
+    window.addEventListener("gamepadconnected", (e) => {
+      console.log("connected");
+      setConnectedMsg(true);
+      setTimeout(() => {
+        setConnectedMsg(false);
+      }, 4000);
+    });
+    window.addEventListener("gamepaddisconnected", (e) => {
+      console.log("disconnected");
+      setDisconnectedMsg(true);
+      setTimeout(() => {
+        setDisconnectedMsg(false);
+      }, 4000);
+    });
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-amber-50">
+    <div className="min-h-screen bg-linear-to-b from-blue-50 via-white to-amber-50">
+      {/* Controller Notifications */}
+      <div
+        className={`fixed left-1/2 -translate-x-1/2 p-3 text-sm bg-green-300 rounded-full shadow-lg transition-all duration-500 ease-in-out ${connectedMsg ? "top-3" : "-top-20"}`}
+      >
+        controller input detected
+      </div>
+      <div
+        className={`fixed left-1/2 -translate-x-1/2 p-3 text-sm bg-red-300 rounded-full shadow-lg transition-all duration-500 ease-in-out ${disconnectedMsg ? "top-3" : "-top-20"}`}
+      >
+        controller disconnected
+      </div>
+
       {/* Navigation Header */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
               <Search className="w-5 h-5 text-white" />
             </div>
             <span className="font-bold text-lg text-slate-900">Lost Link</span>
@@ -51,6 +87,17 @@ function Home() {
           </nav>
 
           <div className="flex items-center gap-3">
+            {isInstallable && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={installPWA}
+                className="border-blue-300 text-blue-600 hover:bg-blue-50"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Install App
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
