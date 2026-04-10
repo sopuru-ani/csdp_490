@@ -89,13 +89,13 @@ function Home() {
           <div className="flex items-center gap-3">
             {isInstallable && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={installPWA}
-                className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50/50 transition-colors"
               >
-                <Download className="w-4 h-4 mr-2" />
-                Install App
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline ml-2">Install App</span>
               </Button>
             )}
             <Button
