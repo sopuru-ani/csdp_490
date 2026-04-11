@@ -60,9 +60,11 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+allowed_origins = [frontend_url, "http://localhost:5173", "http://localhost:5174"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_url],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],)
@@ -101,6 +103,7 @@ def log_action(actor_id: str, action: str, target_type: str = None, target_id: s
 @app.get("/")
 def read_root():
     return {"message": "AI Lost and Found API is running"}
+
 
 @app.post("/auth/signup")
 @limiter.limit("5/minute")
@@ -234,6 +237,14 @@ def get_current_user(request: Request):
     except Exception as e:
         print("GET CURRENT USER ERROR:", repr(e))
         raise HTTPException(status_code=401, detail="Invalid session")
+
+
+@app.get("/auth/token")
+def get_token(request: Request, current_user=Depends(get_current_user)):
+    # User is already verified by get_current_user (cookie check)
+    # Safe to return the token — only works if the cookie is present
+    access_token = request.cookies.get("access_token")
+    return {"access_token": access_token}
 
 @app.get("/auth/userchecker")
 def auth_me(current_user=Depends(get_current_user)):

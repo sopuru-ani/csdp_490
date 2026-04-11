@@ -71,7 +71,8 @@ class RoomManager:
         self.rooms: dict[str, dict[str, WebSocket]] = {}
 
     async def connect(self, conversation_id: str, user_id: str, websocket: WebSocket):
-        await websocket.accept()
+        # NOTE: websocket.accept() is called at the endpoint level before this,
+        # so we just register the connection here
         if conversation_id not in self.rooms:
             self.rooms[conversation_id] = {}
         self.rooms[conversation_id][user_id] = websocket
@@ -148,28 +149,39 @@ def get_current_user(request: Request):
 async def conversation_websocket(
     websocket: WebSocket,
     conversation_id: str,
-    token: Optional[str] = None          # ?token=<access_token> in the URL
+    token: Optional[str] = None
 ):
+    import asyncio
+
+    # ALWAYS accept first — you cannot send or close a WebSocket that hasn't
+    # completed the HTTP upgrade handshake. Closing before accept silently
+    # drops the connection on the client side with no useful error.
+    await websocket.accept()
+
     # 1. Authenticate
     if not token:
         await websocket.close(code=4001, reason="Missing token")
         return
 
-    current_user = verify_token(token)
+    # verify_token does synchronous Supabase calls — run in thread pool so
+    # we don't block the event loop during auth
+    current_user = await asyncio.to_thread(verify_token, token)
     if not current_user:
         await websocket.close(code=4001, reason="Invalid token")
         return
 
     user_id = current_user["id"]
 
-    # 2. Confirm user belongs to this conversation
-    convo = db_supabase.table("conversations") \
-        .select("id") \
-        .eq("id", conversation_id) \
-        .or_(f"user_one_id.eq.{user_id},user_two_id.eq.{user_id}") \
-        .single() \
-        .execute()
+    # 2. Confirm user belongs to this conversation (run in thread pool)
+    def check_convo():
+        return db_supabase.table("conversations") \
+            .select("id") \
+            .eq("id", conversation_id) \
+            .or_(f"user_one_id.eq.{user_id},user_two_id.eq.{user_id}") \
+            .single() \
+            .execute()
 
+    convo = await asyncio.to_thread(check_convo)
     if not convo.data:
         await websocket.close(code=4003, reason="Not your conversation")
         return
@@ -193,16 +205,18 @@ async def conversation_websocket(
                 await websocket.send_json({"error": "Empty message"})
                 continue
 
-            # 5. Save to DB
-            insert = db_supabase.table("messages").insert({
-                "conversation_id": conversation_id,
-                "sender_id": user_id,
-                "content": content,
-            }).execute()
+            # 5. Save to DB in thread pool — don't block the event loop
+            def save_message():
+                return db_supabase.table("messages").insert({
+                    "conversation_id": conversation_id,
+                    "sender_id": user_id,
+                    "content": content,
+                }).execute()
 
+            insert = await asyncio.to_thread(save_message)
             saved_message = insert.data[0]
 
-            # 6. Build the payload both sides will receive
+            # 6. Build the payload both sides receive
             payload = {
                 "type": "message",
                 "data": {
@@ -222,6 +236,10 @@ async def conversation_websocket(
             await room_manager.broadcast(conversation_id, payload, exclude_user_id=user_id)
 
     except WebSocketDisconnect:
+        room_manager.disconnect(conversation_id, user_id)
+    except Exception as e:
+        # Catch unexpected errors so the room is always cleaned up
+        print(f"[WS] Unexpected error for {user_id}:", repr(e))
         room_manager.disconnect(conversation_id, user_id)
 
 

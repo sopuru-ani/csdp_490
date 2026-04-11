@@ -4,8 +4,9 @@ import Sidebar from "@/components/sidebar";
 import { supabase } from "@/lib/supabase";
 import { apiFetch } from "@/lib/api";
 import ReportButton from "@/components/AbuseReportButton";
-
 import { MessageCircleMore, ArrowLeft } from "lucide-react";
+
+console.log("Connecting to WebSocket at", import.meta.env.VITE_API_WS_URL);
 
 function Messages() {
   const navigate = useNavigate();
@@ -18,7 +19,12 @@ function Messages() {
   const [loading, setLoading] = useState(true);
   const bottomRef = useRef(null);
 
-  // Auth check + fetch conversations
+  // ws holds the live WebSocket connection for the open conversation.
+  // We use a ref so handleSend can always read the current socket
+  // without needing it as a useEffect dependency.
+  const wsRef = useRef(null);
+
+  // ── Auth check + load conversation list ───────────────────────────────────
   useEffect(() => {
     async function init() {
       try {
@@ -42,9 +48,7 @@ function Messages() {
 
   async function fetchConversations() {
     try {
-      const res = await apiFetch("/conversations", {
-        credentials: "include",
-      });
+      const res = await apiFetch("/conversations", { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         setConversations(data.conversations);
@@ -54,34 +58,101 @@ function Messages() {
     }
   }
 
-  // Load messages when conversation selected
+  // ── WebSocket — opens when a conversation is selected, closes on exit ─────
+  // This replaces the old setInterval polling block entirely.
+  //
+  // Flow:
+  //   1. Load message history via REST (one-time, populates the chat window)
+  //   2. Open a WebSocket for live updates going forward
+  //   3. Incoming messages are appended to state — no re-fetching needed
+  //   4. Cleanup closes the socket when the user navigates away or switches convos
+  // KEY FIX: depend on selectedConvo?.id (a string) NOT selectedConvo (an object).
+  // Objects fail reference equality on every render even if the data is identical,
+  // which caused the effect to re-run, closing and reopening the socket constantly
+  // and breaking the recipient's live connection.
   useEffect(() => {
-    if (!selectedConvo) return;
+    if (!selectedConvo?.id) return;
 
+    // cancelled flag prevents the async openSocket from setting state or
+    // assigning wsRef after the effect has already been cleaned up
     let cancelled = false;
+    let ws;
 
-    async function poll() {
-      if (!cancelled && document.visibilityState === "visible") {
-        await fetchMessages(selectedConvo.id);
+    async function openSocket() {
+      await fetchMessages(selectedConvo.id);
+
+      // Bail out if the effect was cleaned up while fetchMessages was awaiting
+      if (cancelled) return;
+
+      const tokenRes = await apiFetch("/auth/token");
+      const tokenData = await tokenRes.json();
+      const token = tokenData?.access_token;
+      if (!token) {
+        console.error("No access token — cannot open WebSocket");
+        return;
       }
+
+      if (cancelled) return;
+
+      //const BACKEND_WS_URL = import.meta.env.VITE_API_WS_URL || "wss://csdp490server.qr-manager.net";
+
+      const BACKEND_WS_URL = import.meta.env.VITE_API_WS_URL;
+
+      ws = new WebSocket(
+        `${BACKEND_WS_URL}/ws/conversations/${selectedConvo.id}?token=${token}`,
+      );
+
+      // Only assign to ref after confirmed not cancelled
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        console.log("[WS] Connected to conversation", selectedConvo.id);
+      };
+
+      ws.onmessage = (event) => {
+        if (cancelled) return;
+        const payload = JSON.parse(event.data);
+        if (payload.type === "message") {
+          setMessages((prev) => {
+            const alreadyExists = prev.some((m) => m.id === payload.data.id);
+            return alreadyExists ? prev : [...prev, payload.data];
+          });
+        }
+        if (payload.error) {
+          console.error("[WS] Server error:", payload.error);
+        }
+      };
+
+      ws.onerror = (err) => {
+        console.error("[WS] Error:", err);
+      };
+
+      ws.onclose = () => {
+        console.log("[WS] Connection closed");
+      };
+
+      ws.onclose = () => {
+        console.log("[WS] Connection closed");
+      };
     }
 
-    poll();
-    const interval = setInterval(poll, 5000);
-    document.addEventListener("visibilitychange", poll);
+    openSocket();
 
     return () => {
       cancelled = true;
-      clearInterval(interval);
-      document.removeEventListener("visibilitychange", poll);
+      wsRef.current = null;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
     };
-  }, [selectedConvo]);
+  }, [selectedConvo?.id]); // ← ID string, not the object
 
-  // Scroll to bottom when messages update
+  // ── Scroll to bottom on new messages ─────────────────────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // ── Load message history (called once per conversation open) ──────────────
   async function fetchMessages(convoId) {
     try {
       const res = await apiFetch(`/conversations/${convoId}/messages`, {
@@ -96,16 +167,31 @@ function Messages() {
     }
   }
 
+  // ── Send a message over the WebSocket ────────────────────────────────────
+  // Falls back to REST if the socket is not open (e.g. reconnecting).
   async function handleSend() {
     if (!input.trim() || sending) return;
     setSending(true);
+
     try {
-      await apiFetch(`/conversations/${selectedConvo.id}/messages`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: input.trim() }),
-      });
+      const ws = wsRef.current;
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        // Primary path: send over the live socket
+        ws.send(JSON.stringify({ content: input.trim() }));
+      } else {
+        // Fallback: REST POST if socket dropped
+        console.warn("[WS] Socket not open — falling back to REST");
+        await apiFetch(`/conversations/${selectedConvo.id}/messages`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: input.trim() }),
+        });
+        // Manually re-fetch since we won't get a socket echo
+        await fetchMessages(selectedConvo.id);
+      }
+
       setInput("");
     } catch (err) {
       console.error(err);
@@ -151,7 +237,10 @@ function Messages() {
                   return (
                     <div
                       key={convo.id}
-                      onClick={() => setSelectedConvo(convo)}
+                      onClick={() => {
+                        setMessages([]); // clear previous messages before loading new convo
+                        setSelectedConvo(convo);
+                      }}
                       className="mx-3 my-2 p-4 cursor-pointer rounded-xl border border-gray-100 transition-all duration-200 hover:bg-primary-soft hover:shadow-sm"
                     >
                       <div className="flex items-center gap-3">
@@ -280,4 +369,3 @@ function Messages() {
 }
 
 export default Messages;
-
