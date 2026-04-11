@@ -5,6 +5,8 @@ import ItemDetailModal from "@/components/ItemDetailModal";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "@/lib/api";
 
+import { BadgeQuestionMarkIcon, MapPin } from "lucide-react";
+
 function Dashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -187,6 +189,7 @@ function Dashboard() {
                   className="flex flex-col border-dashed border-2 border-secondary-muted rounded-2xl min-h-32 bg-secondary-soft hover:bg-secondary-muted cursor-pointer justify-center items-center shadow-md transition-all duration-200 hover:shadow-lg text-center px-4 py-6"
                   onClick={() => navigate("/reportlost")}
                 >
+                  <BadgeQuestionMarkIcon className="w-5 h-5" />
                   <p className="text-sm font-semibold">Report Lost Item</p>
                   <p className="text-xs text-text-muted mt-1">
                     Quick report with key details
@@ -196,6 +199,7 @@ function Dashboard() {
                   className="flex flex-col border-dashed border-2 border-secondary-muted rounded-2xl min-h-32 bg-secondary-soft hover:bg-secondary-muted cursor-pointer justify-center items-center shadow-md transition-all duration-200 hover:shadow-lg text-center px-4 py-6"
                   onClick={() => navigate("/reportfound")}
                 >
+                  <MapPin className="w-5 h-5" />
                   <p className="text-sm font-semibold">Report Found Item</p>
                   <p className="text-xs text-text-muted mt-1">
                     Help return an item quickly
