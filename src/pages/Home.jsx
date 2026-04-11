@@ -90,11 +90,11 @@ function Home() {
             {isInstallable && (
               <Button
                 variant="ghost"
-                size="sm"
+                size="md"
                 onClick={installPWA}
                 className="text-blue-600 hover:text-blue-700 hover:bg-blue-50/50 transition-colors"
               >
-                <Download className="w-4 h-4" />
+                <Download className="w-6 h-6 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline ml-2">Install App</span>
               </Button>
             )}
