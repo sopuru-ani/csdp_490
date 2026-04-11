@@ -124,7 +124,7 @@ function Home() {
             <div className="space-y-4">
               <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight">
                 Find What's{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-blue-600">
+                <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-500 to-blue-600">
                   Lost.
                 </span>{" "}
                 <br /> <span className="text-amber-500">Reunite</span> What
@@ -165,8 +165,8 @@ function Home() {
           </div>
 
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 rounded-2xl opacity-20 blur-3xl" />
-            <div className="relative bg-gradient-to-br from-blue-50 to-white rounded-2xl p-8 border border-blue-100 shadow-2xl">
+            <div className="absolute inset-0 bg-linear-to-r from-blue-400 to-blue-600 rounded-2xl opacity-20 blur-3xl" />
+            <div className="relative bg-linear-to-br from-blue-50 to-white rounded-2xl p-8 border border-blue-100 shadow-2xl">
               <div className="space-y-4">
                 <div className="bg-white rounded-lg p-4 border border-slate-200 flex items-center gap-3 shadow-sm">
                   <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -265,7 +265,7 @@ function Home() {
             ].map((feature, idx) => (
               <div
                 key={idx}
-                className="group p-8 rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-slate-50 to-white hover:from-blue-50 hover:to-white"
+                className="group p-8 rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 bg-linear-to-br from-slate-50 to-white hover:from-blue-50 hover:to-white"
               >
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-200 transition">
                   <feature.icon className="w-6 h-6 text-blue-600" />
@@ -322,7 +322,7 @@ function Home() {
               },
             ].map((step, idx) => (
               <div key={idx} className="relative">
-                <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full w-16 h-16 flex items-center justify-center text-2xl font-bold mb-4 shadow-lg">
+                <div className="bg-linear-to-br from-blue-500 to-blue-600 text-white rounded-full w-16 h-16 flex items-center justify-center text-2xl font-bold mb-4 shadow-lg">
                   {step.num}
                 </div>
                 <h3 className="font-bold text-lg text-slate-900 mb-2">
@@ -343,7 +343,7 @@ function Home() {
       {/* Benefits Section */}
       <section
         id="benefits"
-        className="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-20 md:py-28"
+        className="bg-linear-to-r from-blue-600 to-blue-700 text-white py-20 md:py-28"
       >
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-12">
@@ -368,7 +368,7 @@ function Home() {
               },
             ].map((benefit, idx) => (
               <div key={idx} className="flex gap-4">
-                <benefit.icon className="w-8 h-8 flex-shrink-0 mt-1" />
+                <benefit.icon className="w-8 h-8 shrink-0 mt-1" />
                 <div>
                   <h3 className="font-bold text-lg mb-2">{benefit.title}</h3>
                   <p className="text-blue-100">{benefit.description}</p>
@@ -381,7 +381,7 @@ function Home() {
 
       {/* CTA Section */}
       <section className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-20 md:py-28">
-        <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-12 md:p-16 text-center space-y-6">
+        <div className="bg-linear-to-br from-slate-900 to-slate-800 rounded-2xl p-12 md:p-16 text-center space-y-6">
           <h2 className="text-4xl md:text-5xl font-bold text-white">
             Start Your Search Today
           </h2>

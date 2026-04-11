@@ -57,30 +57,35 @@ function Sidebar({ collapsed, setCollapsed }) {
             label="Dashboard"
             collapsed={collapsed}
             href="/dashboard"
+            onItemSelected={() => setCollapsed(true)}
           />
           <NavItem
             icon={<Clipboard className="w-5 h-5" />}
             label="My Reports"
             collapsed={collapsed}
             href="/my-reports"
+            onItemSelected={() => setCollapsed(true)}
           />
           <NavItem
             icon={<Bell className="w-5 h-5" />}
             label="Notifications"
             collapsed={collapsed}
             href="/notifications"
+            onItemSelected={() => setCollapsed(true)}
           />
           <NavItem
             icon={<Settings className="w-5 h-5" />}
             label="Settings"
             collapsed={collapsed}
             href="/settings"
+            onItemSelected={() => setCollapsed(true)}
           />
           <NavItem
             icon={<MessageCircle className="w-5 h-5" />}
             label="Messages"
             collapsed={collapsed}
             href="/messages"
+            onItemSelected={() => setCollapsed(true)}
           />
         </div>
 
@@ -137,13 +142,21 @@ function Sidebar({ collapsed, setCollapsed }) {
   );
 }
 
-function NavItem({ icon, label, collapsed, href }) {
+function NavItem({ icon, label, collapsed, href, onItemSelected }) {
   const navigate = useNavigate();
   const location = useLocation();
   const isActive = href && location.pathname === href;
+  const handleNavClick = () => {
+    if (!href) return;
+    navigate(href);
+    if (window.matchMedia("(max-width: 768px)").matches) {
+      onItemSelected?.();
+    }
+  };
+
   return (
     <div
-      onClick={() => href && navigate(href)}
+      onClick={handleNavClick}
       className={`hover:bg-primary-muted rounded-xl p-2.5 flex flex-row items-center
               cursor-pointer transition-all duration-200 overflow-hidden
               ${isActive ? "bg-secondary-muted shadow-sm" : ""}`}

@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { apiFetch } from "@/lib/api";
 import ReportButton from "@/components/AbuseReportButton";
 
-import { MessageCircleMore, ArrowLeft } from "lucide-react";
+import { MessageCircleMore, ArrowLeft, Send } from "lucide-react";
 
 function Messages() {
   const navigate = useNavigate();
@@ -122,9 +122,11 @@ function Messages() {
   return (
     <>
       {/* <Sidebar /> */}
-      <div className="w-full h-full p-3 sm:p-4 md:p-6 flex flex-col overflow-hidden">
+      {/* <div className="w-full h-full sm:p-4 md:p-6 flex flex-col overflow-hidden"> */}
+      <div className="w-full h-full flex flex-col overflow-hidden">
         {!selectedConvo ? (
-          <div className="w-full border border-gray-200 flex flex-col bg-white rounded-2xl shadow-md overflow-hidden">
+          // <div className="w-full border border-gray-200 flex flex-col bg-white rounded-2xl shadow-md overflow-hidden">
+          <div className="w-full h-full border border-gray-200 flex flex-col bg-white shadow-md overflow-hidden">
             <div className="p-5 border-b border-gray-100">
               <p className="font-bold text-xl">Messages</p>
               <p className="text-xs text-text-muted">
@@ -149,10 +151,15 @@ function Messages() {
                 {conversations.map((convo) => {
                   const other = getOtherUser(convo);
                   return (
+                    // <div
+                    //   key={convo.id}
+                    //   onClick={() => setSelectedConvo(convo)}
+                    //   className="mx-3 my-2 p-4 cursor-pointer rounded-xl border border-gray-100 transition-all duration-200 hover:bg-primary-soft hover:shadow-sm"
+                    // >
                     <div
                       key={convo.id}
                       onClick={() => setSelectedConvo(convo)}
-                      className="mx-3 my-2 p-4 cursor-pointer rounded-xl border border-gray-100 transition-all duration-200 hover:bg-primary-soft hover:shadow-sm"
+                      className="p-4 cursor-pointer transition-all duration-200 hover:bg-primary-soft hover:shadow-sm"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-white text-sm font-semibold shrink-0">
@@ -176,7 +183,8 @@ function Messages() {
             )}
           </div>
         ) : (
-          <div className="w-full flex flex-col bg-white rounded-2xl border border-gray-200 shadow-md overflow-hidden">
+          // <div className="w-full flex flex-col bg-white rounded-2xl border border-gray-200 shadow-md overflow-hidden">
+          <div className="w-full h-full flex flex-col bg-white border border-gray-200 shadow-md overflow-hidden">
             {/* Thread header */}
             <div className="p-5 border-b border-gray-200 bg-white flex items-center gap-3">
               <button
@@ -255,21 +263,28 @@ function Messages() {
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t border-gray-200 bg-white flex flex-col sm:flex-row gap-3">
+            <div className="p-4 border-t border-gray-200 bg-white flex flex-row justify-center items-center sm:flex-row gap-3">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder="Type a message..."
-                className="flex-1 outline-none px-4 py-2.5 rounded-xl bg-primary-soft border border-gray-200 focus:border-secondary focus:ring-2 ring-secondary-muted text-sm transition-all duration-200"
+                className="flex-1 outline-none px-4 py-2.5 rounded-xl bg-primary-soft border border-gray-200 focus:border-secondary focus:ring-1 focus:ring-secondary-muted focus:ring-opacity-50 ring-secondary-muted text-sm transition-all duration-200"
               />
-              <button
+              {/* <button
                 onClick={handleSend}
                 disabled={sending || !input.trim()}
                 className="px-4 py-2 rounded-xl bg-secondary hover:bg-secondary-hover text-white text-sm cursor-pointer disabled:opacity-60 transition-all duration-200 shadow-sm w-full sm:w-auto"
               >
                 {sending ? "..." : "Send"}
+              </button> */}
+              <button
+                onClick={handleSend}
+                disabled={sending || !input.trim()}
+                className="disabled:opacity-60 p-2 h-fit rounded-full bg-secondary w-fit hover:bg-secondary-hover cursor-pointer"
+              >
+                <Send className="w-5 h-5 bg-inherit" />
               </button>
             </div>
           </div>
@@ -280,4 +295,3 @@ function Messages() {
 }
 
 export default Messages;
-

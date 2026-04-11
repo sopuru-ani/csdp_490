@@ -38,8 +38,11 @@ function Settings() {
     message: "",
   });
 
-  const { isLoading: pushLoading, subscribe, notificationDenied } =
-    usePushNotifications("123456789");
+  const {
+    isLoading: pushLoading,
+    subscribe,
+    notificationDenied,
+  } = usePushNotifications("123456789");
 
   const [notifyPrefs, setNotifyPrefs] = useState({
     push: false,
@@ -65,7 +68,9 @@ function Settings() {
         }
         const data = await res.json();
         setUser(data);
-        setProfileName(`${data.first_name || ""} ${data.last_name || ""}`.trim());
+        setProfileName(
+          `${data.first_name || ""} ${data.last_name || ""}`.trim(),
+        );
         setProfileEmail(data.email || "");
       } catch {
         navigate("/login");
@@ -336,9 +341,7 @@ function Settings() {
             />
           </div>
           <div className="flex flex-col gap-2">
-            {passwordStatus.message && (
-              <StatusBadge status={passwordStatus} />
-            )}
+            {passwordStatus.message && <StatusBadge status={passwordStatus} />}
             <div className="flex flex-col sm:flex-row sm:justify-end gap-2">
               <button
                 onClick={handlePasswordSave}
@@ -513,7 +516,8 @@ function Field({ label, type = "text", value, onChange, placeholder }) {
 
 function ToggleRow({ label, description, checked, onChange, disabled }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 px-3 py-3">
+    // <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 px-3 py-3">
+    <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-3">
       <div>
         <p className="text-sm font-semibold">{label}</p>
         <p className="text-xs text-text-muted">{description}</p>
@@ -568,7 +572,9 @@ function writeStorage(key, value) {
 }
 
 function clearStorage() {
-  Object.values(LOCAL_STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+  Object.values(LOCAL_STORAGE_KEYS).forEach((key) =>
+    localStorage.removeItem(key),
+  );
 }
 
 export default Settings;
