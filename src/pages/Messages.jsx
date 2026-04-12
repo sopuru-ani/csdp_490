@@ -94,9 +94,10 @@ function Messages() {
 
       if (cancelled) return;
 
-      //const BACKEND_WS_URL = import.meta.env.VITE_API_WS_URL || "wss://csdp490server.qr-manager.net";
+      const BACKEND_WS_URL =
+        import.meta.env.VITE_API_WS_URL || "ws://csdp490server.qr-manager.net";
 
-      const BACKEND_WS_URL = import.meta.env.VITE_API_WS_URL;
+      // const BACKEND_WS_URL = import.meta.env.VITE_API_WS_URL;
 
       ws = new WebSocket(
         `${BACKEND_WS_URL}/ws/conversations/${selectedConvo.id}?token=${token}`,
