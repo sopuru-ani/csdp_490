@@ -24,12 +24,12 @@ function AppRoutes() {
       <Route path="/signup" element={<Signup />} />
       <Route path="/reportlost" element={<ReportLost />} />
       <Route path="/reportfound" element={<ReportFound />} />
+      <Route path="/messages/:conversationId" element={<ConversationPage />} />
       <Route element={<Overview />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/admin/matches" element={<AdminMatches />} />
         <Route path="/my-reports" element={<MyReports />} />
         <Route path="/messages" element={<Messages />} />
-        <Route path="/messages/:conversationId" element={<ConversationPage />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/admin/audit-logs" element={<AuditLogs />} />
         <Route path="/admin/reports" element={<AdminReports />} />

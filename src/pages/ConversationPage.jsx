@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { apiFetch } from "@/lib/api";
 import ReportButton from "@/components/AbuseReportButton";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Send } from "lucide-react";
 
 function ConversationPage() {
   const { conversationId } = useParams();
@@ -39,7 +39,9 @@ function ConversationPage() {
     if (convo) return;
     async function loadConvo() {
       try {
-        const res = await apiFetch("/conversations", { credentials: "include" });
+        const res = await apiFetch("/conversations", {
+          credentials: "include",
+        });
         if (res.ok) {
           const data = await res.json();
           const found = data.conversations.find((c) => c.id === conversationId);
@@ -83,7 +85,8 @@ function ConversationPage() {
       );
       wsRef.current = ws;
 
-      ws.onopen = () => console.log("[WS] Connected to conversation", conversationId);
+      ws.onopen = () =>
+        console.log("[WS] Connected to conversation", conversationId);
 
       ws.onmessage = (event) => {
         if (cancelled) return;
@@ -162,8 +165,9 @@ function ConversationPage() {
   const other = getOtherUser();
 
   return (
-    <div className="w-full h-full p-3 sm:p-4 md:p-6 flex flex-col overflow-hidden">
-      <div className="w-full flex flex-col bg-white rounded-2xl border border-gray-200 shadow-md overflow-hidden">
+    // <div className="w-full h-dvh p-3 sm:p-4 md:p-6 flex flex-col overflow-hidden">
+    <div className="w-full h-dvh flex flex-col overflow-hidden">
+      <div className="w-full h-full flex flex-col bg-white border border-gray-200 shadow-md overflow-hidden">
         {/* Header */}
         <div className="p-5 border-b border-gray-200 bg-white flex items-center gap-3">
           <button
@@ -241,21 +245,22 @@ function ConversationPage() {
         </div>
 
         {/* Input */}
-        <div className="p-4 border-t border-gray-200 bg-white flex flex-col sm:flex-row gap-3">
+        <div className="p-4 border-t border-gray-200 bg-white flex flex-row items-center sm:flex-row gap-3">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             placeholder="Type a message..."
-            className="flex-1 outline-none px-4 py-2.5 rounded-xl bg-primary-soft border border-gray-200 focus:border-secondary focus:ring-2 ring-secondary-muted text-sm transition-all duration-200"
+            className="flex-1 outline-none px-4 py-2.5 rounded-xl bg-primary-soft border border-gray-200 focus:border-secondary-muted focus:ring-1 ring-secondary-muted text-sm transition-all duration-200"
           />
           <button
             onClick={handleSend}
             disabled={sending || !input.trim()}
-            className="px-4 py-2 rounded-xl bg-secondary hover:bg-secondary-hover text-white text-sm cursor-pointer disabled:opacity-60 transition-all duration-200 shadow-sm w-full sm:w-auto"
+            className="w-fit h-fit p-2 rounded-full bg-secondary hover:bg-secondary-hover text-white text-sm cursor-pointer disabled:opacity-60 transition-all duration-200 shadow-sm"
           >
-            {sending ? "..." : "Send"}
+            {/* {sending ? "..." : "Send"} */}
+            <Send className="w-6 h-6" />
           </button>
         </div>
       </div>
