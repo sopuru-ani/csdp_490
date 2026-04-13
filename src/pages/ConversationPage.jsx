@@ -78,7 +78,7 @@ function ConversationPage() {
       if (cancelled) return;
 
       const BACKEND_WS_URL =
-        import.meta.env.VITE_API_WS_URL || "ws://csdp490server.qr-manager.net";
+        import.meta.env.VITE_API_WS_URL || "wss://csdp490server.qr-manager.net";
 
       ws = new WebSocket(
         `${BACKEND_WS_URL}/ws/conversations/${conversationId}?token=${token}`,
@@ -252,7 +252,7 @@ function ConversationPage() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             placeholder="Type a message..."
-            className="flex-1 outline-none px-4 py-2.5 rounded-xl bg-primary-soft border border-gray-200 focus:border-secondary-muted focus:ring-1 ring-secondary-muted text-sm transition-all duration-200"
+            className="flex-1 outline-none px-4 py-2.5 rounded-full bg-primary-soft border border-gray-200 focus:border-secondary-muted focus:ring-1 ring-secondary-muted text-sm transition-all duration-200"
           />
           <button
             onClick={handleSend}
