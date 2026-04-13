@@ -67,7 +67,7 @@ function Signup() {
   }
 
   async function verifyPasswordFunction() {
-    //  console.log("email:", email);
+    // console.log("email:", email);
     //  console.log("password:", password);
     //  console.log("firstName:", firstName);
     //  console.log("lastName:", lastName);

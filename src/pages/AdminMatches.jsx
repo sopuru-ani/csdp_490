@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "@/components/sidebar";
 import { apiFetch } from "@/lib/api";
 
+import { CheckSquareIcon } from "lucide-react";
+
 function AdminMatches() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("pending");
@@ -102,12 +104,14 @@ function AdminMatches() {
         {/* Tabs */}
         <div className="flex flex-wrap items-center gap-2">
           <button
-            className={tabClass("pending")}
+            className={`${tabClass("pending")} flex flex-row gap-2 items-center`}
             onClick={() => setTab("pending")}
           >
             Pending
             {pending.length > 0 && (
-              <span className="ml-2 text-xs bg-warning text-white px-1.5 py-0.5 rounded-full">
+              <span
+                className={`text-xs bg-warning text-white font-bold w-5 h-5 flex items-center justify-center rounded-full ${tab === "pending" ? "text-secondary! bg-white" : ""}`}
+              >
                 {pending.length}
               </span>
             )}
@@ -132,7 +136,8 @@ function AdminMatches() {
         ) : tab === "pending" ? (
           pending.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-2">
-              <p className="text-4xl">✅</p>
+              {/* <p className="text-4xl">✅</p> */}
+              <CheckSquareIcon className="w-10 h-10 text-success" />
               <p className="font-semibold">All caught up!</p>
               <p className="text-sm text-text-muted">
                 No pending match requests.
@@ -178,7 +183,7 @@ function MatchReviewCard({ match, mode, onApprove, onReject }) {
   };
 
   return (
-      <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
       {/* Requester */}
       {match.requester && (
         <div className="flex flex-col sm:flex-row sm:items-center gap-2">

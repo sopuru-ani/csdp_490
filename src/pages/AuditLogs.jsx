@@ -74,7 +74,7 @@ function AuditLogs() {
     filter === "all" ? logs : logs.filter((l) => l.action === filter);
 
   const filterBtnClass = (f) =>
-    `px-3 py-1.5 text-xs rounded-lg cursor-pointer transition-colors ${
+    `min-w-fit px-3 py-1.5 text-xs rounded-lg cursor-pointer transition-colors ${
       filter === f
         ? "bg-secondary text-white font-semibold"
         : "text-text-muted hover:bg-primary-muted"
@@ -83,7 +83,7 @@ function AuditLogs() {
   return (
     <>
       {/* <Sidebar /> */}
-      <div className="p-4 flex-1 flex flex-col gap-4">
+      <div className="w-dvw p-4 flex-1 flex flex-col gap-4">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -100,7 +100,7 @@ function AuditLogs() {
         </div>
 
         {/* Filter */}
-        <div className="flex items-center gap-1 flex-wrap">
+        <div className="flex flex-row items-center gap-1 overflow-x-scroll [box-shadow:inset_-8px_0_8px_-8px_rgba(0,0,0,0.3)]">
           {actions.map((a) => (
             <button
               key={a}
@@ -143,7 +143,7 @@ function LogRow({ log }) {
   const actor = log.actor;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 px-4 py-3 flex items-center gap-4">
+    <div className="bg-white rounded-lg border border-gray-200 px-4 py-3 flex items-center gap-4 w-full">
       {/* Action badge */}
       <span
         className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${meta.color}`}
