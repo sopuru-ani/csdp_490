@@ -23,23 +23,23 @@ function Home() {
   const [disconnectedMsg, setDisconnectedMsg] = useState(false);
   const { isInstallable, installPWA } = usePWAInstall();
 
-  // useEffect(() => {
-  //   console.log(navigator.getGamepads());
-  //   window.addEventListener("gamepadconnected", (e) => {
-  //     console.log("connected");
-  //     setConnectedMsg(true);
-  //     setTimeout(() => {
-  //       setConnectedMsg(false);
-  //     }, 4000);
-  //   });
-  //   window.addEventListener("gamepaddisconnected", (e) => {
-  //     console.log("disconnected");
-  //     setDisconnectedMsg(true);
-  //     setTimeout(() => {
-  //       setDisconnectedMsg(false);
-  //     }, 4000);
-  //   });
-  // }, []);
+  useEffect(() => {
+    console.log(navigator.getGamepads());
+    window.addEventListener("gamepadconnected", (e) => {
+      console.log("connected");
+      setConnectedMsg(true);
+      setTimeout(() => {
+        setConnectedMsg(false);
+      }, 4000);
+    });
+    window.addEventListener("gamepaddisconnected", (e) => {
+      console.log("disconnected");
+      setDisconnectedMsg(true);
+      setTimeout(() => {
+        setDisconnectedMsg(false);
+      }, 4000);
+    });
+  }, []);
 
   return (
     <div className="min-h-screen bg-linear-to-b from-blue-50 via-white to-amber-50">

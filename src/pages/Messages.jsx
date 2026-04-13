@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "@/lib/api";
 
-import { MessageCircleMore } from "lucide-react";
+import { MessageCircleMore, ArrowLeft, Send } from "lucide-react";
 
 function Messages() {
   const navigate = useNavigate();
