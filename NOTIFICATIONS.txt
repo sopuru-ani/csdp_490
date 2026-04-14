@@ -1,0 +1,341 @@
+================================================================================
+LOSTLINK — PUSH NOTIFICATION SYSTEM
+Implementation Summary
+================================================================================
+
+OVERVIEW
+--------
+Push notifications are delivered via the Web Push Protocol (RFC 8030) using
+VAPID authentication. The browser service worker (src/sw.js) receives the push
+payload and calls showNotification(). Subscriptions are stored per-device in
+the push_subscriptions table in Supabase.
+
+All notification logic lives in one central module:
+  Backend/routers/notifications.py
+
+Every public function in that module is fire-and-forget — errors are logged
+but never raised, so a push failure can never break the request that triggered it.
+
+The underlying infrastructure (VAPID keys, subscription save/delete, the
+get_subscriptions_for_user helper) was already in place via pushsubs.py.
+This implementation connects that infrastructure to actual application events.
+
+
+ENVIRONMENT VARIABLES REQUIRED
+--------------------------------
+These must be set in Backend/.env (already required by existing pushsubs.py):
+
+  VAPID_PRIVATE_KEY       — private VAPID key for signing push requests
+  VAPID_CLAIMS_EMAIL      — mailto: address included in VAPID claims
+  VAPID_PUBLIC_KEY        — public key (used by the frontend, not notifications.py)
+
+
+FILES CHANGED
+-------------
+  Backend/routers/notifications.py    — rewritten (was empty/commented out)
+  Backend/routers/matches.py          — 3 hooks added
+  Backend/routers/messaging.py        — 2 hooks added (WS + REST)
+  Backend/routers/admin.py            — 1 hook added
+  Backend/routers/items.py            — 2 hooks added
+  Backend/routers/users.py            — 1 hook added
+
+  main.py was NOT changed — notifications.py has no routes, only utility
+  functions, so there is nothing to register as a router.
+
+
+================================================================================
+NOTIFICATIONS.PY — INTERNALS
+================================================================================
+
+send_push(user_id, title, body, url, tag)
+-----------------------------------------
+Core sender. Looks up every push subscription for a user via
+get_subscriptions_for_user() (from pushsubs.py), then calls pywebpush for
+each device. If a device returns HTTP 404 or 410 (subscription expired or
+revoked), that row is automatically deleted from push_subscriptions so the
+dead endpoint is never hit again.
+
+Parameters:
+  user_id  — Supabase user UUID
+  title    — notification title shown in the OS tray
+  body     — notification body text
+  url      — deep-link path opened when the user taps (default: /dashboard)
+  tag      — browser deduplication key; a new push with the same tag
+             replaces the previous unread one on the device
+
+The push payload sent to the service worker:
+  {
+    "title": "...",
+    "body":  "...",
+    "icon":  "/cat.jpeg",
+    "tag":   "...",
+    "data":  { "url": "..." }
+  }
+
+The service worker reads data.url and opens/focuses that page on click.
+
+_get_admin_ids()
+-----------------
+Queries users WHERE is_admin = true. Returns a list of UUIDs.
+Used internally by notify_admins().
+
+notify_admins(title, body, url, tag)
+-------------------------------------
+Calls send_push() for every admin user. Used by all admin-only events.
+
+
+================================================================================
+NOTIFICATION EVENTS — FULL DETAIL
+================================================================================
+
+--------------------------------------------------------------------------------
+1. AI FOUND POTENTIAL MATCHES  (High Priority — User-facing)
+--------------------------------------------------------------------------------
+Function : notifications.ai_matches_found(user_id, item_name)
+Fires in : matches.py — find_matches (GET /items/{item_id}/matches)
+When     : After Gemini returns and enriched_matches has at least 1 result.
+
+Because find_matches is an async endpoint, the notification is dispatched
+as a background task (asyncio.create_task + asyncio.to_thread) so the API
+response is not held up by the push HTTP call.
+
+Notification copy:
+  Title : "Potential matches found!"
+  Body  : 'The AI found possible matches for your item: "{item_name}". Tap to review.'
+  URL   : /my-reports
+  Tag   : lostlink-ai-matches
+
+Note: The user is already on the page when this fires, so the notification
+is mainly useful on their other devices (e.g. phone while on desktop).
+
+--------------------------------------------------------------------------------
+2. MATCH REQUEST APPROVED  (High Priority — User-facing)
+--------------------------------------------------------------------------------
+Function : notifications.match_request_approved(user_id, item_name)
+Fires in : matches.py — review_match (PUT /admin/matches/{match_id}/review)
+When     : Admin sets decision = "approved". Notifies the user who submitted
+           the match request (match.requested_by).
+
+The source item's item_name is fetched in the same query that already
+retrieves user_id — query was updated from SELECT "user_id" to
+SELECT "user_id, item_name".
+
+Notification copy:
+  Title : "Match approved! 🎉"
+  Body  : 'Your match request for "{item_name}" was approved. A conversation has been opened.'
+  URL   : /messages
+  Tag   : lostlink-match-approved
+
+--------------------------------------------------------------------------------
+3. MATCH REQUEST REJECTED  (High Priority — User-facing)
+--------------------------------------------------------------------------------
+Function : notifications.match_request_rejected(user_id, item_name)
+Fires in : matches.py — review_match (PUT /admin/matches/{match_id}/review)
+When     : Admin sets decision = "rejected". Notifies match.requested_by.
+
+Source item name is fetched with a targeted SELECT "item_name" query added
+inside the rejection branch — no unnecessary DB work on the approval path.
+
+Notification copy:
+  Title : "Match request not approved"
+  Body  : 'Your match request for "{item_name}" was reviewed and not approved.'
+  URL   : /my-reports
+  Tag   : lostlink-match-rejected
+
+--------------------------------------------------------------------------------
+4. SOMEONE REQUESTED A MATCH WITH YOUR ITEM  (High Priority — User-facing)
+--------------------------------------------------------------------------------
+Function : notifications.someone_requested_your_item(owner_id, requester_name, item_name)
+Fires in : matches.py — request_match (POST /items/{item_id}/matches/request)
+When     : A user submits a match request. The owner of the MATCHED item
+           (not the source item) is notified.
+
+The matched item's user_id and item_name are fetched after the match row is
+inserted. A guard prevents self-notification if both items belong to the same
+user (edge case).
+
+requester_name is built from current_user["first_name"] + last_name.
+
+Notification copy:
+  Title : "Someone matched your item"
+  Body  : '{requester_name} submitted a match request involving your item "{item_name}".'
+  URL   : /my-reports
+  Tag   : lostlink-match-request
+
+--------------------------------------------------------------------------------
+5. ITEM MARKED AS CLOSED/RECOVERED  (Account Event — User-facing)
+--------------------------------------------------------------------------------
+Function : notifications.item_closed(user_id, item_name)
+Fires in : matches.py — review_match (PUT /admin/matches/{match_id}/review)
+When     : Admin approves a match. Both items are closed. This notification
+           goes to the matched-item owner (the party who did NOT submit the
+           match request). The requesting party already gets notification #2
+           (match approved), which implies closure, so they are not sent a
+           duplicate item_closed push.
+
+Guard: only fires if matched_item.user_id != match.requested_by, which is
+always true in normal flow but prevents a double push if the data is unusual.
+
+Notification copy:
+  Title : "Your item has been closed"
+  Body  : 'Your item "{item_name}" was marked as recovered/closed after a successful match.'
+  URL   : /my-reports
+  Tag   : lostlink-item-closed
+
+--------------------------------------------------------------------------------
+6. NEW MESSAGE IN CONVERSATION  (Messaging — User-facing)
+--------------------------------------------------------------------------------
+Function : notifications.new_message(recipient_id, sender_name, conversation_id,
+                                     *, is_first_message=False)
+Fires in : messaging.py — conversation_websocket (WS) and send_message_rest (REST)
+
+Key behavior — only fires if the recipient is NOT already in the WebSocket room:
+  room_manager.rooms.get(conversation_id, {}) is checked before pushing.
+  If the recipient's user_id is present in that dict, they are live in the chat
+  and the push is skipped.
+
+First-message detection:
+  After inserting, the message count for the conversation is queried. If
+  count == 1, is_first_message=True is passed, and the copy changes to
+  "started a conversation with you" instead of "new message from".
+
+WebSocket path: push logic runs inside asyncio.to_thread() so the event loop
+is not blocked by the synchronous Supabase + webpush calls.
+
+REST path: same logic runs synchronously (the REST endpoint is sync).
+
+Notification copy (subsequent messages):
+  Title : "New message from {sender_name}"
+  Body  : "You have an unread message in LostLink."
+  URL   : /messages/{conversation_id}
+  Tag   : lostlink-msg-{conversation_id}
+
+Notification copy (first message only):
+  Title : "{sender_name} started a conversation"
+  Body  : "You have a new conversation waiting in LostLink."
+  URL   : /messages/{conversation_id}
+  Tag   : lostlink-msg-{conversation_id}
+
+The tag includes the conversation ID so multiple messages in the same chat
+collapse into a single notification on the device rather than spamming.
+
+--------------------------------------------------------------------------------
+7. PASSWORD CHANGED  (Account / Security — User-facing)
+--------------------------------------------------------------------------------
+Function : notifications.password_changed(user_id)
+Fires in : users.py — change_password (PUT /users/change-password)
+When     : After Supabase Auth successfully updates the password.
+
+Notification copy:
+  Title : "Password changed"
+  Body  : "Your LostLink password was just updated. If this wasn't you, contact support immediately."
+  URL   : /settings
+  Tag   : lostlink-password-changed
+
+--------------------------------------------------------------------------------
+8. NEW MATCH REQUEST PENDING REVIEW  (Admin Only)
+--------------------------------------------------------------------------------
+Function : notifications.admin_match_pending(match_id)
+Fires in : matches.py — request_match (POST /items/{item_id}/matches/request)
+When     : Same event as #4 (user submits a match request). All admin users
+           are notified via notify_admins().
+
+Notification copy:
+  Title : "New match request"
+  Body  : "A match request is waiting for your review."
+  URL   : /admin/matches
+  Tag   : lostlink-admin-match-{match_id}
+
+Tag includes match_id so each distinct match request creates its own
+notification rather than replacing the previous one.
+
+--------------------------------------------------------------------------------
+9. NEW ABUSE REPORT SUBMITTED  (Admin Only)
+--------------------------------------------------------------------------------
+Function : notifications.admin_report_pending(report_id)
+Fires in : admin.py — submit_abuse_report (POST /report)
+When     : User submits an abuse report that passes all validation. All admins
+           are notified via notify_admins().
+
+Notification copy:
+  Title : "New abuse report"
+  Body  : "An abuse report has been submitted and needs review."
+  URL   : /admin/reports
+  Tag   : lostlink-admin-report-{report_id}
+
+--------------------------------------------------------------------------------
+10. NEW ITEM REPORTED ON CAMPUS  (Admin Only — Optional)
+--------------------------------------------------------------------------------
+Function : notifications.admin_new_item(item_name, item_type)
+Fires in : items.py — create_lost_item (POST /items/lost)
+                    — create_found_item (POST /items/found)
+When     : Any user reports a new lost or found item. All admins are notified.
+
+This is marked "optional" in the original spec. It is implemented and active.
+If it becomes too noisy, the two notification.admin_new_item() calls can be
+removed from items.py without touching anything else.
+
+Notification copy:
+  Title : "New {lost|found} item posted"
+  Body  : '"{item_name}" was just reported as {lost|found} on campus.'
+  URL   : /dashboard
+  Tag   : lostlink-admin-new-item
+
+Note: This tag is shared across all new-item notifications, so each new item
+replaces the previous unread notification rather than stacking them. If you
+want each to be distinct, change the tag to include the item ID.
+
+
+================================================================================
+EVENTS NOT IMPLEMENTED (require a background job / cron)
+================================================================================
+
+These two events from the original spec cannot be triggered by an HTTP request
+because they depend on elapsed time, not a user action:
+
+  - "Your lost item has been open for 7+ days with no match"
+  - "Remind user to mark item as recovered"
+
+To implement these you would need either:
+  a) A Supabase Edge Function + pg_cron job that runs daily, queries items
+     WHERE item_type='lost' AND status='open' AND created_at < NOW() - INTERVAL '7 days',
+     and calls notifications.send_push() for each owner.
+  b) An external cron (e.g. Render Cron Job, GitHub Actions schedule) that
+     hits a protected internal endpoint (e.g. POST /internal/reminders) which
+     runs the same query and fires the pushes.
+
+  - "Your account received a warning/action"
+  This depends on a manual admin action that does not currently have a dedicated
+  endpoint. When an admin warning workflow is added, wire in a call to send_push()
+  targeting the warned user's ID.
+
+
+================================================================================
+STALE SUBSCRIPTION CLEANUP
+================================================================================
+When a device unsubscribes or the browser clears its push registration, the
+push service returns HTTP 404 or 410 on the next delivery attempt. send_push()
+catches these responses and deletes the corresponding row from push_subscriptions
+so the dead endpoint is never contacted again.
+
+
+================================================================================
+EVENT → FILE MAPPING (quick reference)
+================================================================================
+
+Event                            | Function                        | File
+---------------------------------|---------------------------------|-------------------
+AI found matches                 | ai_matches_found                | matches.py
+Match request approved           | match_request_approved          | matches.py
+Match request rejected           | match_request_rejected          | matches.py
+Someone matched your item        | someone_requested_your_item     | matches.py
+Item closed (matched-item owner) | item_closed                     | matches.py
+New message / conv started       | new_message                     | messaging.py
+Password changed                 | password_changed                | users.py
+Admin: match pending review      | admin_match_pending             | matches.py
+Admin: abuse report submitted    | admin_report_pending            | admin.py
+Admin: new item on campus        | admin_new_item                  | items.py
+
+================================================================================
+END OF DOCUMENT
+================================================================================

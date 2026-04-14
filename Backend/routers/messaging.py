@@ -36,6 +36,8 @@ import json
 from typing import Optional
 from datetime import datetime
 
+import routers.notifications as notifications
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Depends, Request
 from pydantic import BaseModel
 from supabase import create_client, Client
@@ -235,6 +237,39 @@ async def conversation_websocket(
             # 8. Broadcast to the other participant
             await room_manager.broadcast(conversation_id, payload, exclude_user_id=user_id)
 
+            # 9. Push notification to the recipient if they are not in the WS room
+            def push_to_recipient():
+                conv = db_supabase.table("conversations") \
+                    .select("user_one_id, user_two_id") \
+                    .eq("id", conversation_id) \
+                    .single() \
+                    .execute()
+                if not conv.data:
+                    return
+                one, two = conv.data["user_one_id"], conv.data["user_two_id"]
+                recipient_id = two if one == user_id else one
+
+                # Skip push if recipient is already reading the conversation live
+                if recipient_id in room_manager.rooms.get(conversation_id, {}):
+                    return
+
+                # Detect first message so copy reads "started a conversation"
+                count_res = db_supabase.table("messages") \
+                    .select("id", count="exact") \
+                    .eq("conversation_id", conversation_id) \
+                    .execute()
+                is_first = (count_res.count or 0) == 1
+
+                sender_name = f"{current_user['first_name']} {current_user['last_name']}".strip()
+                notifications.new_message(
+                    recipient_id,
+                    sender_name,
+                    conversation_id,
+                    is_first_message=is_first,
+                )
+
+            await asyncio.to_thread(push_to_recipient)
+
     except WebSocketDisconnect:
         room_manager.disconnect(conversation_id, user_id)
     except Exception as e:
@@ -392,6 +427,23 @@ def send_message_rest(
             "sender_id": user_id,
             "content": body.content.strip()
         }).execute()
+
+        # Push notification — skip if recipient is live in the WS room
+        one, two = convo.data["user_one_id"], convo.data["user_two_id"]
+        recipient_id = two if one == user_id else one
+        if recipient_id not in room_manager.rooms.get(conversation_id, {}):
+            count_res = db_supabase.table("messages") \
+                .select("id", count="exact") \
+                .eq("conversation_id", conversation_id) \
+                .execute()
+            is_first = (count_res.count or 0) == 1
+            sender_name = f"{current_user['first_name']} {current_user['last_name']}".strip()
+            notifications.new_message(
+                recipient_id,
+                sender_name,
+                conversation_id,
+                is_first_message=is_first,
+            )
 
         return {"message": "Sent", "data": result.data[0]}
 
