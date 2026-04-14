@@ -10,9 +10,11 @@ import MyReports from "@/pages/MyReports";
 import Messages from "@/pages/Messages";
 import AuditLogs from "@/pages/AuditLogs";
 import AdminReports from "@/pages/AdminReports";
-import Dev from "@/pages/Dev";
 import Settings from "@/pages/Settings";
 import ConversationPage from "@/pages/ConversationPage";
+import Notifications from "@/pages/Notifications";
+import DevMap from "@/pages/DevMap";
+import Dev from "@/pages/Dev";
 
 import Overview from "@/Overview";
 
@@ -33,8 +35,10 @@ function AppRoutes() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/admin/audit-logs" element={<AuditLogs />} />
         <Route path="/admin/reports" element={<AdminReports />} />
+        <Route path="/notifications" element={<Notifications />} />
       </Route>
       <Route path="/dev" element={<Dev />} />
+      <Route path="/dev/map" element={<DevMap />} />
     </Routes>
   );
 }

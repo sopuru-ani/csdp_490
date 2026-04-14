@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { apiFetch } from "@/lib/api";
 import ReportButton from "@/components/AbuseReportButton";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, ArrowUp } from "lucide-react";
 
 function ConversationPage() {
   const { conversationId } = useParams();
@@ -245,7 +245,7 @@ function ConversationPage() {
         </div>
 
         {/* Input */}
-        <div className="p-4 border-t border-gray-200 bg-white flex flex-row items-center sm:flex-row gap-3">
+        {/* <div className="p-4 border-t border-gray-200 bg-white flex flex-row items-center sm:flex-row gap-3">
           <input
             type="text"
             value={input}
@@ -259,9 +259,29 @@ function ConversationPage() {
             disabled={sending || !input.trim()}
             className="w-fit h-fit p-2 rounded-full bg-secondary hover:bg-secondary-hover text-white text-sm cursor-pointer disabled:opacity-60 transition-all duration-200 shadow-sm"
           >
-            {/* {sending ? "..." : "Send"} */}
-            <Send className="w-6 h-6" />
+            <ArrowUp className="w-6 h-6" />
           </button>
+        </div> */}
+        <div className="p-4">
+          <div className="rounded-full border-t p-2 border-gray-200 flex flex-row items-center sm:flex-row gap-3 bg-primary-soft">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              placeholder="Type a message..."
+              className="flex-1 outline-none px-4 py-2.5 "
+            />
+            <button
+              onClick={handleSend}
+              disabled={sending || !input.trim()}
+              className="w-fit h-fit p-2 rounded-full bg-secondary hover:bg-secondary-hover text-white text-sm cursor-pointer disabled:opacity-60 transition-all duration-200 shadow-sm"
+            >
+              {/* {sending ? "..." : "Send"} */}
+              {/* <Send className="w-6 h-6" /> */}
+              <ArrowUp className="w-6 h-6" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
