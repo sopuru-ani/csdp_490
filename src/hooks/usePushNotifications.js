@@ -29,7 +29,12 @@ export function usePushNotifications(userId) {
             }
 
             // 3. Register service worker
-            const reg = await navigator.serviceWorker.register("/sw.js");
+            const swUrl = import.meta.env.DEV ? "/src/sw.js" : "/sw.js";
+            const swScope = import.meta.env.DEV ? "/src/" : "/";
+            const reg = await navigator.serviceWorker.register(swUrl, {
+                type: "module",
+                scope: swScope,
+            });
 
             // 4. Subscribe to push
             const subscription = await reg.pushManager.subscribe({

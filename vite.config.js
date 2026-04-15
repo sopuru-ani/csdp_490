@@ -53,8 +53,13 @@ export default defineConfig({
       devOptions: { enabled: true, type: "module" },
     }),
   ],
+  server: {
+    headers: {
+      "Service-Worker-Allowed": "/",
+    },
+  },
   preview: {
-    allowedHosts: ["wanted-undertone-flattery.ngrok-free.dev"],
+    allowedHosts: ["wanted-undertone-flattery-ngrok-free.dev"],
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },

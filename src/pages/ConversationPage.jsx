@@ -262,8 +262,8 @@ function ConversationPage() {
             <ArrowUp className="w-6 h-6" />
           </button>
         </div> */}
-        <div className="p-4">
-          <div className="rounded-full border-t p-2 border-gray-200 flex flex-row items-center sm:flex-row gap-3 bg-primary-soft">
+        <div className="p-4 border-t border-gray-200">
+          <div className="rounded-full border border-primary-muted py-1 px-2 flex flex-row items-center sm:flex-row gap-3 bg-primary-soft">
             <input
               type="text"
               value={input}
@@ -279,7 +279,7 @@ function ConversationPage() {
             >
               {/* {sending ? "..." : "Send"} */}
               {/* <Send className="w-6 h-6" /> */}
-              <ArrowUp className="w-6 h-6" />
+              <ArrowUp className="w-5 h-5" />
             </button>
           </div>
         </div>
