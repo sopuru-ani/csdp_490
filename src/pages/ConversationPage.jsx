@@ -272,7 +272,7 @@ function ConversationPage() {
           </button>
         </div> */}
         {/* <div className="p-4 border-t border-gray-200"> */}
-        <div className="p-4">
+        <div className="px-2 pb-2">
           <div
             className={`border border-primary-muted py-0.5 px-2 flex  gap-3 bg-primary-soft transition-all duration-200 ease-in-out
   ${isMultiline ? "rounded-4xl items-end" : "items-center rounded-4xl"}`}
