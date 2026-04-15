@@ -14,8 +14,10 @@ function ConversationPage() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [isMultiline, setIsMultiline] = useState(false);
   const bottomRef = useRef(null);
   const wsRef = useRef(null);
+  const textareaRef = useRef(null);
 
   // ── Auth check ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -150,6 +152,11 @@ function ConversationPage() {
         await fetchMessages();
       }
       setInput("");
+      setInput("");
+      setIsMultiline(false);
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -219,7 +226,7 @@ function ConversationPage() {
                       : "bg-white border border-gray-200 rounded-bl-md"
                   }`}
                 >
-                  <p>{msg.content}</p>
+                  <p className="p-1 whitespace-pre-wrap">{msg.content}</p>
                   <p
                     className={`text-xs mt-1 ${isMine ? "text-white/70" : "text-text-muted"}`}
                   >
@@ -264,22 +271,40 @@ function ConversationPage() {
         </div> */}
         {/* <div className="p-4 border-t border-gray-200"> */}
         <div className="p-4">
-          <div className="rounded-full border border-primary-muted py-1 px-2 flex flex-row items-center sm:flex-row gap-3 bg-primary-soft">
-            <input
-              type="text"
+          <div
+            className={`border border-primary-muted py-2.5 px-3 flex  gap-3 bg-primary-soft transition-all duration-200 ease-in-out
+  ${isMultiline ? "rounded-4xl items-end" : "items-center rounded-full"}`}
+          >
+            <textarea
               value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              rows={1}
+              ref={textareaRef}
+              onChange={(e) => {
+                setInput(e.target.value);
+
+                e.target.style.height = "auto";
+                e.target.style.height = e.target.scrollHeight + "px";
+
+                setIsMultiline(
+                  e.target.value.length > 0 && e.target.scrollHeight > 44,
+                );
+              }}
               placeholder="Type a message..."
-              className="flex-1 outline-none px-4 py-2.5 "
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              // className="flex-1 outline-none px-4 py-2.5 min-h-[44px] resize-none overflow-hidden bg-transparent"
+              className="flex-1 outline-none px-4 py-2.5 min-h-[44px] max-h-[200px] resize-none overflow-y-auto bg-transparent"
             />
+
             <button
               onClick={handleSend}
               disabled={sending || !input.trim()}
-              className="w-fit h-fit p-2 rounded-full bg-secondary hover:bg-secondary-hover text-white text-sm cursor-pointer disabled:opacity-60 transition-all duration-200 shadow-sm"
+              className="p-2 rounded-full bg-secondary hover:bg-secondary-hover text-white disabled:opacity-60 transition-all duration-200 shadow-sm"
             >
-              {/* {sending ? "..." : "Send"} */}
-              {/* <Send className="w-6 h-6" /> */}
               <ArrowUp className="w-5 h-5" />
             </button>
           </div>
