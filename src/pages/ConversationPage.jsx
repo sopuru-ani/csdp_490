@@ -5,6 +5,7 @@ import ReportButton from "@/components/AbuseReportButton";
 import { ArrowLeft, Send, ArrowUp } from "lucide-react";
 
 function ConversationPage() {
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   const { conversationId } = useParams();
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -217,7 +218,7 @@ function ConversationPage() {
             return (
               <div
                 key={msg.id}
-                className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
+                className={`flex flex-col ${isMine ? "items-end ml-6" : "items-start mr-6"}`}
               >
                 <div
                   className={`max-w-sm px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
@@ -226,7 +227,9 @@ function ConversationPage() {
                       : "bg-white border border-gray-200 rounded-bl-md"
                   }`}
                 >
-                  <p className="p-1 whitespace-pre-wrap">{msg.content}</p>
+                  <p className="whitespace-pre-wrap wrap-break-word break-all text-sm sm:text-base">
+                    {msg.content}
+                  </p>
                   <p
                     className={`text-xs mt-1 ${isMine ? "text-white/70" : "text-text-muted"}`}
                   >
@@ -270,10 +273,10 @@ function ConversationPage() {
           </button>
         </div> */}
         {/* <div className="p-4 border-t border-gray-200"> */}
-        <div className="p-4">
+        <div className="px-2 pb-2">
           <div
-            className={`border border-primary-muted py-2.5 px-3 flex  gap-3 bg-primary-soft transition-all duration-200 ease-in-out
-  ${isMultiline ? "rounded-4xl items-end" : "items-center rounded-full"}`}
+            className={`border border-primary-muted py-0.5 px-2 flex  gap-3 bg-primary-soft transition-all duration-200 ease-in-out
+  ${isMultiline ? "rounded-4xl items-end" : "items-center rounded-4xl"}`}
           >
             <textarea
               value={input}
@@ -291,7 +294,7 @@ function ConversationPage() {
               }}
               placeholder="Type a message..."
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
+                if (!isMobile && e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
                   handleSend();
                 }
@@ -303,7 +306,7 @@ function ConversationPage() {
             <button
               onClick={handleSend}
               disabled={sending || !input.trim()}
-              className="p-2 rounded-full bg-secondary hover:bg-secondary-hover text-white disabled:opacity-60 transition-all duration-200 shadow-sm"
+              className={`p-2  rounded-full bg-secondary hover:bg-secondary-hover text-white disabled:opacity-60 transition-all duration-200 shadow-sm ${isMultiline ? "mb-1.5" : ""}`}
             >
               <ArrowUp className="w-5 h-5" />
             </button>
