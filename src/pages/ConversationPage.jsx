@@ -217,7 +217,7 @@ function ConversationPage() {
             return (
               <div
                 key={msg.id}
-                className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
+                className={`flex flex-col ${isMine ? "items-end ml-6" : "items-start mr-6"}`}
               >
                 <div
                   className={`max-w-sm px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
@@ -226,7 +226,7 @@ function ConversationPage() {
                       : "bg-white border border-gray-200 rounded-bl-md"
                   }`}
                 >
-                  <p className="whitespace-pre-wrap wrap-break-word break-all">
+                  <p className="whitespace-pre-wrap wrap-break-word break-all text-sm sm:text-base">
                     {msg.content}
                   </p>
                   <p
