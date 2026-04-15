@@ -226,7 +226,9 @@ function ConversationPage() {
                       : "bg-white border border-gray-200 rounded-bl-md"
                   }`}
                 >
-                  <p className="p-1 whitespace-pre-wrap">{msg.content}</p>
+                  <p className="whitespace-pre-wrap wrap-break-word break-all">
+                    {msg.content}
+                  </p>
                   <p
                     className={`text-xs mt-1 ${isMine ? "text-white/70" : "text-text-muted"}`}
                   >
