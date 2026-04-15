@@ -38,11 +38,18 @@ function Settings() {
     message: "",
   });
 
+  // const {
+  //   isSubscribed,
+  //   isLoading: pushLoading,
+  //   subscribe,
+  //   notificationDenied,
+  // } = usePushNotifications(user?.user_id || null);
   const {
+    isSubscribed,
     isLoading: pushLoading,
     subscribe,
     notificationDenied,
-  } = usePushNotifications("123456789");
+  } = usePushNotifications(user?.id);
 
   const [notifyPrefs, setNotifyPrefs] = useState({
     push: false,
@@ -68,6 +75,7 @@ function Settings() {
         }
         const data = await res.json();
         setUser(data);
+        console.log(data);
         setProfileName(
           `${data.first_name || ""} ${data.last_name || ""}`.trim(),
         );
@@ -101,6 +109,11 @@ function Settings() {
       setNotifyPrefs((prev) => ({ ...prev, push: false }));
     }
   }, [notificationDenied]);
+
+  // Sync push subscription state with notifyPrefs
+  useEffect(() => {
+    setNotifyPrefs((prev) => ({ ...prev, push: isSubscribed }));
+  }, [isSubscribed]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -262,13 +275,18 @@ function Settings() {
   }
 
   async function handlePushToggle(nextValue) {
-    if (nextValue) {
-      await subscribe();
-      setNotifyPrefs((prev) => ({ ...prev, push: !notificationDenied }));
+    if (!user?.id) {
+      console.warn("Cannot subscribe to push notifications: user not loaded");
       return;
     }
 
-    setNotifyPrefs((prev) => ({ ...prev, push: false }));
+    if (nextValue) {
+      await subscribe();
+      // notifyPrefs.push will be updated automatically via useEffect when isSubscribed changes
+    } else {
+      // TODO: Implement unsubscribe when available
+      setNotifyPrefs((prev) => ({ ...prev, push: false }));
+    }
   }
 
   if (loading) {
@@ -375,7 +393,7 @@ function Settings() {
           }
           checked={notifyPrefs.push}
           onChange={handlePushToggle}
-          disabled={pushLoading}
+          disabled={pushLoading || !user?.id}
         />
         <ToggleRow
           label="Enable Email Notifications"
