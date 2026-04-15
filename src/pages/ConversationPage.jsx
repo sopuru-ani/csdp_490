@@ -274,8 +274,8 @@ function ConversationPage() {
         {/* <div className="p-4 border-t border-gray-200"> */}
         <div className="p-4">
           <div
-            className={`border border-primary-muted py-2.5 px-3 flex  gap-3 bg-primary-soft transition-all duration-200 ease-in-out
-  ${isMultiline ? "rounded-4xl items-end" : "items-center rounded-full"}`}
+            className={`border border-primary-muted py-0.5 px-2 flex  gap-3 bg-primary-soft transition-all duration-200 ease-in-out
+  ${isMultiline ? "rounded-4xl items-end" : "items-center rounded-4xl"}`}
           >
             <textarea
               value={input}
@@ -305,7 +305,7 @@ function ConversationPage() {
             <button
               onClick={handleSend}
               disabled={sending || !input.trim()}
-              className="p-2 rounded-full bg-secondary hover:bg-secondary-hover text-white disabled:opacity-60 transition-all duration-200 shadow-sm"
+              className={`p-2  rounded-full bg-secondary hover:bg-secondary-hover text-white disabled:opacity-60 transition-all duration-200 shadow-sm ${isMultiline ? "mb-1.5" : ""}`}
             >
               <ArrowUp className="w-5 h-5" />
             </button>
