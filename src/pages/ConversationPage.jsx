@@ -5,6 +5,7 @@ import ReportButton from "@/components/AbuseReportButton";
 import { ArrowLeft, Send, ArrowUp } from "lucide-react";
 
 function ConversationPage() {
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   const { conversationId } = useParams();
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -293,7 +294,7 @@ function ConversationPage() {
               }}
               placeholder="Type a message..."
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
+                if (!isMobile && e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
                   handleSend();
                 }
