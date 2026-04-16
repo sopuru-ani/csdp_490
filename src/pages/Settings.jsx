@@ -282,10 +282,8 @@ function Settings() {
 
     if (nextValue) {
       await subscribe();
-      // notifyPrefs.push will be updated automatically via useEffect when isSubscribed changes
     } else {
-      // TODO: Implement unsubscribe when available
-      setNotifyPrefs((prev) => ({ ...prev, push: false }));
+      await unsubscribe();
     }
   }
 
@@ -393,7 +391,7 @@ function Settings() {
           }
           checked={notifyPrefs.push}
           onChange={handlePushToggle}
-          disabled={pushLoading || !user?.id}
+          disabled={pushLoading || !user?.id || notificationDenied}
         />
         <ToggleRow
           label="Enable Email Notifications"
