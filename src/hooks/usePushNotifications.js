@@ -15,13 +15,18 @@ export function usePushNotifications(userId) {
 
     // On mount, check whether the browser already holds an active push subscription
     // so the toggle reflects reality after a page refresh instead of always starting OFF.
+    // Must use getRegistration(scope) — not serviceWorker.ready — because ready resolves
+    // to the SW controlling the current page, which may differ from the scope used when
+    // the push subscription was created (e.g. /src/ in dev vs the current /settings page).
     useEffect(() => {
         if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
 
-        navigator.serviceWorker.ready.then((reg) => {
-            reg.pushManager.getSubscription().then((sub) => {
-                setIsSubscribed(!!sub);
-            });
+        const swScope = import.meta.env.DEV ? "/src/" : "/";
+        navigator.serviceWorker.getRegistration(swScope).then((reg) => {
+            if (!reg) return;
+            return reg.pushManager.getSubscription();
+        }).then((sub) => {
+            if (sub !== undefined) setIsSubscribed(!!sub);
         }).catch(() => {});
     }, []);
 

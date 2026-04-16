@@ -92,13 +92,21 @@ self.addEventListener("push", (event) => {
         }
     }
 
+    // renotify: true re-alerts the user when a notification with the same tag is replaced.
+    // It requires tag to be a non-empty string — guard against empty/missing to avoid a
+    // silent DOMException that swallows the entire notification.
+    const tag = payload.tag || "lostlink-default";
+
     event.waitUntil(
         self.registration.showNotification(payload.title, {
             body: payload.body,
             icon: payload.icon,
-            tag: payload.tag,
+            tag,
             data: payload.data,
             requireInteraction: false,
+            renotify: true,
+        }).catch((err) => {
+            console.error("[SW] showNotification failed:", err);
         })
     );
 });
