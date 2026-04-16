@@ -1,0 +1,163 @@
+Push Notification Bug Fixes
+============================
+Date: 2026-04-15
+
+This document describes the five bugs found and fixed to make
+push notifications work end-to-end in LostLink.
+
+────────────────────────────────────────────────────────────────
+Fix 1 — VITE_VAPID_PUBLIC_KEY missing VITE_ prefix
+File: .env
+────────────────────────────────────────────────────────────────
+Problem:
+  The frontend env variable was named VAPID_PUBLIC_KEY. Vite only
+  exposes variables prefixed with VITE_ to the browser, so
+  import.meta.env.VITE_VAPID_PUBLIC_KEY returned undefined.
+  urlBase64ToUint8Array(undefined) immediately crashed with:
+    "Cannot read properties of undefined (reading 'length')"
+
+Fix:
+  Renamed VAPID_PUBLIC_KEY → VITE_VAPID_PUBLIC_KEY in .env.
+
+────────────────────────────────────────────────────────────────
+Fix 2 — VAPID public key was hex-encoded, not base64url
+File: .env
+────────────────────────────────────────────────────────────────
+Problem:
+  The VITE_VAPID_PUBLIC_KEY value was the raw uncompressed EC point
+  in hex (130 hex chars). PushManager.subscribe() requires the key
+  as a base64url-encoded Uint8Array of those same bytes, not hex.
+  The browser rejected it with:
+    "InvalidAccessError: The provided applicationServerKey is not valid."
+
+Fix:
+  Derived the correct base64url public key from the existing PKCS8
+  private key using py-vapid in the backend venv:
+
+    from py_vapid import Vapid
+    import base64
+    v = Vapid.from_string(VAPID_PRIVATE_KEY)
+    pub = v.public_key.public_bytes(Encoding.X962, PublicFormat.UncompressedPoint)
+    print(base64.urlsafe_b64encode(pub).rstrip(b'=').decode())
+
+  Result: BNACgQ5yPq-hvv2IVjQTOv-Uy5ueGSeQ0FDL-N_89Rrmt9aVjvol6gzJsuUfpkpA-OJWQUNMahC6EHba2fct-7s
+  This value replaced the hex string in .env.
+
+────────────────────────────────────────────────────────────────
+Fix 3 — /save-subscription 404 and nested payload mismatch
+Files: src/hooks/usePushNotifications.js
+       Backend/routers/pushsubs.py
+────────────────────────────────────────────────────────────────
+Problem (URL):
+  The frontend posted to /save-subscription but the router is mounted
+  with prefix /push, so the real path is /push/save-subscription.
+  Every subscription attempt got a 404.
+
+Fix:
+  Changed the apiFetch call from "/save-subscription"
+  to "/push/save-subscription".
+
+Problem (payload shape):
+  The browser's PushSubscription.toJSON() produces a nested object:
+    { endpoint: "...", keys: { p256dh: "...", auth: "..." } }
+  The frontend wraps this as { subscription: <above>, userId: "..." }.
+  The old Pydantic model expected flat top-level fields (endpoint,
+  p256dh, auth) and would reject the nested structure with a
+  validation error.
+
+Fix:
+  Replaced the flat PushSubscription model with properly nested models:
+    class PushKeys(BaseModel):
+        p256dh: str
+        auth: str
+
+    class SubscriptionObject(BaseModel):
+        endpoint: str
+        keys: PushKeys
+
+    class SaveSubscriptionRequest(BaseModel):
+        userId: str
+        subscription: SubscriptionObject
+
+  Updated save_subscription() to read:
+    data.subscription.endpoint
+    data.subscription.keys.p256dh
+    data.subscription.keys.auth
+
+  Also split the delete model into RemoveSubscriptionRequest (userId +
+  endpoint only) since the full nested object is not needed for removal.
+
+────────────────────────────────────────────────────────────────
+Fix 4 — Hardcoded fake userId in Settings.jsx
+File: src/pages/Settings.jsx
+────────────────────────────────────────────────────────────────
+Problem:
+  usePushNotifications was called with the hardcoded string "123456789":
+    } = usePushNotifications("123456789");
+  Every subscription was saved to the database under user_id = "123456789",
+  so send_push() could never find any subscription for real users and no
+  push would ever be delivered.
+
+Fix:
+  Changed to use the real user ID from the already-fetched user state:
+    } = usePushNotifications(user?.id);
+  The user object is populated by the init() useEffect that calls
+  /auth/userchecker on mount. subscribe() is only called on user
+  interaction (toggle click), which always happens after the user
+  data has loaded, so user?.id is guaranteed to be set at call time.
+
+────────────────────────────────────────────────────────────────
+Fix 5 — Double mailto: prefix in VAPID claims
+File: Backend/routers/notifications.py
+────────────────────────────────────────────────────────────────
+Problem:
+  Backend/.env already stores the claim as:
+    VAPID_CLAIMS_EMAIL=mailto:fortunenk4jesus@gmail.com
+  But notifications.py built the claim as:
+    vapid_claims={"sub": f"mailto:{_VAPID_CLAIMS_EMAIL}"}
+  This produced "mailto:mailto:fortunenk4jesus@gmail.com", which is an
+  invalid VAPID claims value and would cause push delivery to fail.
+
+Fix:
+  Removed the hardcoded prefix so the env value is used directly:
+    vapid_claims={"sub": _VAPID_CLAIMS_EMAIL}
+
+────────────────────────────────────────────────────────────────
+Fix 6 — unsubscribe() was a no-op stub
+File: src/hooks/usePushNotifications.js
+────────────────────────────────────────────────────────────────
+Problem:
+  The unsubscribe function body was an empty TODO comment. Toggling
+  push notifications off in Settings did not cancel the browser
+  subscription or remove it from the database, so the backend would
+  continue delivering pushes to a device the user had opted out from.
+
+Fix:
+  Implemented unsubscribe() to:
+    1. Get the active subscription via navigator.serviceWorker.ready
+       and reg.pushManager.getSubscription().
+    2. Call subscription.unsubscribe() to cancel it in the browser.
+    3. POST to /push/remove-subscription with { userId, endpoint }
+       so the row is deleted from the push_subscriptions table.
+    4. Set isSubscribed = false on success.
+
+  Also wired unsubscribe into handlePushToggle in Settings.jsx so
+  it is called when the user flips the toggle off.
+
+────────────────────────────────────────────────────────────────
+Fix 7 — Push toggle not disabled after permission denial
+File: src/pages/Settings.jsx
+────────────────────────────────────────────────────────────────
+Problem:
+  When the browser denied notification permission, the toggle
+  description updated to show a warning message, but the toggle
+  itself remained enabled. The user could keep clicking it and
+  triggering subscribe() on repeat, which would silently fail each
+  time.
+
+Fix:
+  Added notificationDenied to the disabled condition on the toggle:
+    disabled={pushLoading || notificationDenied}
+  Once permission is denied, the toggle is grayed out and unclickable.
+  The existing description text already tells the user to re-enable
+  in browser settings.

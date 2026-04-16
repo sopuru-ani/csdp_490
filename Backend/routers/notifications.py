@@ -76,7 +76,7 @@ def send_push(
                     "data":  {"url": url},
                 }),
                 vapid_private_key=_VAPID_PRIVATE_KEY,
-                vapid_claims={"sub": f"mailto:{_VAPID_CLAIMS_EMAIL}"},
+                vapid_claims={"sub": _VAPID_CLAIMS_EMAIL},
             )
         except WebPushException as e:
             print(f"[PUSH] WebPushException for {user_id}:", repr(e))

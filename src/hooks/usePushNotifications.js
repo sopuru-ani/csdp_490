@@ -43,7 +43,7 @@ export function usePushNotifications(userId) {
             });
 
             // 5. Save to backend with userId
-            await apiFetch("/save-subscription", {
+            await apiFetch("/push/save-subscription", {
                 method: "POST",
                 body: JSON.stringify({ subscription, userId }),
                 headers: { "Content-Type": "application/json" }
@@ -58,7 +58,26 @@ export function usePushNotifications(userId) {
     }
 
     async function unsubscribe() {
-        // TODO: unsub logic later
+        setIsLoading(true);
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            const subscription = await reg.pushManager.getSubscription();
+            if (!subscription) return;
+
+            await subscription.unsubscribe();
+
+            await apiFetch("/push/remove-subscription", {
+                method: "DELETE",
+                body: JSON.stringify({ userId, endpoint: subscription.endpoint }),
+                headers: { "Content-Type": "application/json" },
+            });
+
+            setIsSubscribed(false);
+        } catch (err) {
+            console.error("Push unsubscribe failed:", err);
+        } finally {
+            setIsLoading(false);
+        }
     }
 
     return { isSubscribed, isLoading, subscribe, unsubscribe, notificationDenied, setNotificationDenied };

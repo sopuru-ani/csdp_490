@@ -15,15 +15,28 @@ _supabase: Client = create_client(
 )
 
 
-class PushSubscription(BaseModel):
-    userId: str
-    endpoint: str
+class PushKeys(BaseModel):
     p256dh: str
     auth: str
 
 
+class SubscriptionObject(BaseModel):
+    endpoint: str
+    keys: PushKeys
+
+
+class SaveSubscriptionRequest(BaseModel):
+    userId: str
+    subscription: SubscriptionObject
+
+
+class RemoveSubscriptionRequest(BaseModel):
+    userId: str
+    endpoint: str
+
+
 @router.post("/save-subscription")
-def save_subscription(data: PushSubscription):
+def save_subscription(data: SaveSubscriptionRequest):
     """
     Save or update a browser push subscription for a user.
     Uses upsert so re-subscribing (e.g. after browser refresh) doesn't duplicate rows.
@@ -32,11 +45,11 @@ def save_subscription(data: PushSubscription):
         _supabase.table("push_subscriptions").upsert(
             {
                 "user_id": data.userId,
-                "endpoint": data.endpoint,
-                "p256dh": data.p256dh,
-                "auth": data.auth,
+                "endpoint": data.subscription.endpoint,
+                "p256dh": data.subscription.keys.p256dh,
+                "auth": data.subscription.keys.auth,
             },
-            on_conflict="user_id,endpoint"   # matches the UNIQUE constraint
+            on_conflict="user_id,endpoint"
         ).execute()
 
         return {"message": "Subscription saved."}
@@ -47,7 +60,7 @@ def save_subscription(data: PushSubscription):
 
 
 @router.delete("/remove-subscription")
-def remove_subscription(data: PushSubscription):
+def remove_subscription(data: RemoveSubscriptionRequest):
     """
     Remove a push subscription — called when a user denies notifications
     or logs out and you want to stop sending pushes to that device.

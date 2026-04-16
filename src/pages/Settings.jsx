@@ -41,8 +41,9 @@ function Settings() {
   const {
     isLoading: pushLoading,
     subscribe,
+    unsubscribe,
     notificationDenied,
-  } = usePushNotifications("123456789");
+  } = usePushNotifications(user?.id);
 
   const [notifyPrefs, setNotifyPrefs] = useState({
     push: false,
@@ -268,6 +269,7 @@ function Settings() {
       return;
     }
 
+    await unsubscribe();
     setNotifyPrefs((prev) => ({ ...prev, push: false }));
   }
 
@@ -375,7 +377,7 @@ function Settings() {
           }
           checked={notifyPrefs.push}
           onChange={handlePushToggle}
-          disabled={pushLoading}
+          disabled={pushLoading || notificationDenied}
         />
         <ToggleRow
           label="Enable Email Notifications"
