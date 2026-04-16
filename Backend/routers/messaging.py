@@ -452,3 +452,45 @@ def send_message_rest(
     except Exception as e:
         print("SEND MESSAGE ERROR:", repr(e))
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/conversations/{conversation_id}/messages/{message_id}")
+async def delete_message(
+    conversation_id: str,
+    message_id: str,
+    current_user=Depends(get_current_user)
+):
+    """Delete a message. Only the sender can delete their own message."""
+    try:
+        user_id = current_user["id"]
+
+        # Verify the message exists and belongs to this user
+        msg = db_supabase.table("messages") \
+            .select("id, sender_id, conversation_id") \
+            .eq("id", message_id) \
+            .eq("conversation_id", conversation_id) \
+            .single() \
+            .execute()
+
+        if not msg.data:
+            raise HTTPException(status_code=404, detail="Message not found")
+
+        if msg.data["sender_id"] != user_id:
+            raise HTTPException(status_code=403, detail="You can only delete your own messages")
+
+        # Hard delete
+        db_supabase.table("messages").delete().eq("id", message_id).execute()
+
+        # Broadcast to everyone in the room so their UI removes it instantly
+        await room_manager.broadcast(
+            conversation_id,
+            {"type": "message_deleted", "data": {"id": message_id}},
+        )
+
+        return {"message": "Deleted"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("DELETE MESSAGE ERROR:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))

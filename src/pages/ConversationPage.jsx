@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { apiFetch } from "@/lib/api";
 import ReportButton from "@/components/AbuseReportButton";
-import { ArrowLeft, Send, ArrowUp } from "lucide-react";
+import { ArrowLeft, Send, ArrowUp, Trash2 } from "lucide-react";
 
 function ConversationPage() {
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -100,6 +100,9 @@ function ConversationPage() {
             return alreadyExists ? prev : [...prev, payload.data];
           });
         }
+        if (payload.type === "message_deleted") {
+          setMessages((prev) => prev.filter((m) => m.id !== payload.data.id));
+        }
         if (payload.error) console.error("[WS] Server error:", payload.error);
       };
 
@@ -132,6 +135,18 @@ function ConversationPage() {
       }
     } catch (err) {
       console.error(err);
+    }
+  }
+
+  async function handleDelete(messageId) {
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    try {
+      await apiFetch(`/conversations/${conversationId}/messages/${messageId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+    } catch (err) {
+      console.error("Delete failed:", err);
     }
   }
 
@@ -220,24 +235,35 @@ function ConversationPage() {
                 key={msg.id}
                 className={`flex flex-col ${isMine ? "items-end ml-6" : "items-start mr-6"}`}
               >
-                <div
-                  className={`max-w-sm px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
-                    isMine
-                      ? "bg-secondary text-white rounded-br-md"
-                      : "bg-white border border-gray-200 rounded-bl-md"
-                  }`}
-                >
-                  <p className="whitespace-pre-wrap wrap-break-word break-all text-sm sm:text-base">
-                    {msg.content}
-                  </p>
-                  <p
-                    className={`text-xs mt-1 ${isMine ? "text-white/70" : "text-text-muted"}`}
+                <div className={`group flex items-end gap-1.5 ${isMine ? "flex-row-reverse" : "flex-row"}`}>
+                  <div
+                    className={`max-w-sm px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
+                      isMine
+                        ? "bg-secondary text-white rounded-br-md"
+                        : "bg-white border border-gray-200 rounded-bl-md"
+                    }`}
                   >
-                    {new Date(msg.created_at).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
+                    <p className="whitespace-pre-wrap wrap-break-word break-all text-sm sm:text-base">
+                      {msg.content}
+                    </p>
+                    <p
+                      className={`text-xs mt-1 ${isMine ? "text-white/70" : "text-text-muted"}`}
+                    >
+                      {new Date(msg.created_at).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                  {isMine && (
+                    <button
+                      onClick={() => handleDelete(msg.id)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-danger-soft text-text-muted hover:text-danger cursor-pointer"
+                      aria-label="Delete message"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
                 {!isMine && (
                   <div className="mt-0.5 px-1">
