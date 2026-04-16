@@ -14,6 +14,7 @@ ENDPOINTS:
 
 import os
 import json
+import asyncio
 from datetime import datetime
 from typing import Optional
 
@@ -31,6 +32,7 @@ from routers.dependencies import (
     require_admin,
     log_action,
 )
+import routers.notifications as notifications
 
 load_dotenv()
 
@@ -135,14 +137,33 @@ def review_match(
             db_supabase.table("items").update({"status": "closed"}).eq("id", match["source_item_id"]).execute()
             db_supabase.table("items").update({"status": "closed"}).eq("id", match["matched_item_id"]).execute()
 
-            source  = db_supabase.table("items").select("user_id").eq("id", match["source_item_id"]).single().execute()
-            matched = db_supabase.table("items").select("user_id").eq("id", match["matched_item_id"]).single().execute()
+            source  = db_supabase.table("items").select("user_id, item_name").eq("id", match["source_item_id"]).single().execute()
+            matched = db_supabase.table("items").select("user_id, item_name").eq("id", match["matched_item_id"]).single().execute()
 
             db_supabase.table("conversations").insert({
                 "match_id":     match_id,
                 "user_one_id":  source.data["user_id"],
                 "user_two_id":  matched.data["user_id"],
             }).execute()
+
+            # Notify requester their match was approved
+            notifications.match_request_approved(
+                match["requested_by"],
+                source.data["item_name"],
+            )
+            # Notify the matched-item owner their item was closed
+            if matched.data["user_id"] != match["requested_by"]:
+                notifications.item_closed(
+                    matched.data["user_id"],
+                    matched.data["item_name"],
+                )
+
+        elif body.decision == "rejected":
+            source = db_supabase.table("items").select("item_name").eq("id", match["source_item_id"]).single().execute()
+            notifications.match_request_rejected(
+                match["requested_by"],
+                source.data["item_name"],
+            )
 
         return {"message": f"Match {body.decision} successfully.", "match_id": match_id}
 
@@ -301,6 +322,16 @@ If no reasonable matches exist, return: []"""
                     "item":   item_data,
                 })
 
+        # Notify the user on their other devices if matches were found
+        if enriched_matches:
+            asyncio.create_task(
+                asyncio.to_thread(
+                    notifications.ai_matches_found,
+                    current_user["id"],
+                    source_item["item_name"],
+                )
+            )
+
         return {
             "source_item_id": item_id,
             "matches":        enriched_matches,
@@ -357,17 +388,32 @@ def request_match(
             "requested_by":    current_user["id"],
         }).execute()
 
+        match_id = insert.data[0]["id"]
+
         log_action(
             actor_id=current_user["id"],
             action="match_requested",
             target_type="match",
-            target_id=insert.data[0]["id"],
+            target_id=match_id,
             details={
                 "source_item_id":  item_id,
                 "matched_item_id": matched_item_id,
                 "score":           similarity_score,
             },
         )
+
+        # Notify the owner of the matched item
+        matched_item = db_supabase.table("items").select("user_id, item_name").eq("id", matched_item_id).single().execute()
+        if matched_item.data and matched_item.data["user_id"] != current_user["id"]:
+            requester_name = f"{current_user['first_name']} {current_user['last_name']}".strip()
+            notifications.someone_requested_your_item(
+                matched_item.data["user_id"],
+                requester_name,
+                matched_item.data["item_name"],
+            )
+
+        # Notify admins a new match is pending review
+        notifications.admin_match_pending(match_id)
 
         return {
             "message": "Match requested. An admin will review it shortly.",

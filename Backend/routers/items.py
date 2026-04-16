@@ -27,6 +27,7 @@ from routers.dependencies import (
     require_admin,
     log_action,
 )
+import routers.notifications as notifications
 
 router = APIRouter(prefix="/items", tags=["items"])
 
@@ -104,6 +105,7 @@ def create_lost_item(
             "image_paths":   item.image_paths,
         }).execute()
 
+        notifications.admin_new_item(item.item_name, "lost")
         return {"message": "Lost item reported successfully", "item": result.data[0]}
 
     except Exception as e:
@@ -130,6 +132,7 @@ def create_found_item(
             "image_paths": item.image_paths,
         }).execute()
 
+        notifications.admin_new_item(item.item_name, "found")
         return {"message": "Found item reported successfully", "item": result.data[0]}
 
     except Exception as e:

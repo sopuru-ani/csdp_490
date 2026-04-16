@@ -23,6 +23,7 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional
 from supabase import create_client, Client
 from dotenv import load_dotenv
+import routers.notifications as notifications
 
 load_dotenv()
 
@@ -172,6 +173,7 @@ def change_password(
         # Step 2: update to the new password
         auth_supabase.auth.update_user({"password": body.new_password})
 
+        notifications.password_changed(current_user["id"])
         return {"message": "Password updated successfully."}
 
     except HTTPException:

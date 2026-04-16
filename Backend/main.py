@@ -21,6 +21,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
 from dotenv import load_dotenv
 
+
 from routers.dependencies import limiter
 from routers import auth, items, matches, admin, messaging, users, pushsubs
 
@@ -66,3 +67,5 @@ app.include_router(pushsubs.router)
 @app.get("/")
 def read_root():
     return {"message": "AI Lost and Found API is running"}
+
+

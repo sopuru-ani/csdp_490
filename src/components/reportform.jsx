@@ -60,6 +60,8 @@ function ReportForm({ type = "lost" }) {
   const [images, setImages] = useState([]);
   const [previews, setPreviews] = useState([]);
 
+  const [customCategory, setCustomCategory] = useState("");
+
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -103,6 +105,8 @@ function ReportForm({ type = "lost" }) {
     if (!form.title || form.title.trim().length < 3)
       newErrors.title = "Title must be at least 3 characters.";
     if (!form.category) newErrors.category = "Please select a category.";
+    if (form.category === "Other" && !customCategory.trim())
+      newErrors.category = "Please describe the category.";
     if (!form.description || form.description.trim().length < 10)
       newErrors.description = "Description must be at least 10 characters.";
     if (!form.location || form.location.trim().length < 3)
@@ -147,6 +151,9 @@ function ReportForm({ type = "lost" }) {
       }
 
       // Step 2: Submit the item report with the returned image paths
+      const resolvedCategory =
+        form.category === "Other" ? customCategory.trim() : form.category;
+
       const itemRes = await apiFetch(`/items/${type}`, {
         method: "POST",
         credentials: "include",
@@ -155,7 +162,7 @@ function ReportForm({ type = "lost" }) {
           item_name: form.title,
           description: form.description,
           location: form.location,
-          category: form.category,
+          category: resolvedCategory,
           date_lost_from: dateFrom ? dateFrom.toISOString() : null,
           date_lost_to: dateTo ? dateTo.toISOString() : null,
           date_found: date ? date.toISOString() : null,
@@ -276,6 +283,16 @@ function ReportForm({ type = "lost" }) {
                 ))}
               </SelectContent>
             </Select>
+            {form.category === "Other" && (
+              <input
+                type="text"
+                value={customCategory}
+                onChange={(e) => setCustomCategory(e.target.value)}
+                placeholder="Describe the category..."
+                maxLength={50}
+                className={inputClass("category")}
+              />
+            )}
             {errors.category && (
               <p className="text-danger text-xs">{errors.category}</p>
             )}

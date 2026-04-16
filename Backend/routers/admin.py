@@ -23,6 +23,7 @@ from routers.dependencies import (
     require_admin,
     log_action,
 )
+import routers.notifications as notifications
 
 router = APIRouter(tags=["admin"])
 
@@ -105,9 +106,12 @@ def submit_abuse_report(
             details={"reason": body.reason, "target_type": body.target_type},
         )
 
+        report_id = result.data[0]["id"]
+        notifications.admin_report_pending(report_id)
+
         return {
             "message":   "Report submitted. Our team will review it shortly.",
-            "report_id": result.data[0]["id"],
+            "report_id": report_id,
         }
 
     except HTTPException:

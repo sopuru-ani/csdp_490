@@ -1,0 +1,246 @@
+LostLink — Claude Code Session Report
+======================================
+Date: 2026-04-15 / 2026-04-16
+Branch: Backend → merge target: main
+Engineer: FortuneKalu
+AI: Claude Sonnet 4.6
+
+This document is a full account of every bug found, decision made,
+and feature built during this session. Paste into Claude for continuity.
+
+════════════════════════════════════════════════════════════════════
+PART 1 — PUSH NOTIFICATION PIPELINE (end-to-end debug & fix)
+════════════════════════════════════════════════════════════════════
+
+ARCHITECTURE OVERVIEW
+─────────────────────
+Browser subscribes → subscription saved in Supabase push_subscriptions
+table → backend event (message/match/etc.) triggers notifications.py
+send_push() → pywebpush posts to FCM endpoint → FCM delivers to
+browser → sw.js push event fires → showNotification()
+
+BUGS FIXED (in order of discovery)
+────────────────────────────────────
+
+1. VITE_ prefix missing on VAPID public key (.env)
+   BEFORE: VAPID_PUBLIC_KEY=04d002...  (Vite never exposes non-VITE_ vars)
+   AFTER:  VITE_VAPID_PUBLIC_KEY=BNACgQ5y...
+   Effect: urlBase64ToUint8Array(undefined) crashed on .length
+
+2. VAPID public key was hex-encoded, not base64url (.env)
+   BEFORE: 04d002810e723eafa1...  (130-char hex string)
+   AFTER:  BNACgQ5yPq-hvv2IVjQTOv-Uy5ueGSeQ0FDL-N_89Rrmt9a...
+   Derived via py_vapid from the existing PKCS8 private key:
+     v = Vapid.from_string(VAPID_PRIVATE_KEY)
+     pub = v.public_key.public_bytes(Encoding.X962, PublicFormat.UncompressedPoint)
+     base64.urlsafe_b64encode(pub).rstrip(b'=').decode()
+   Effect: PushManager.subscribe() threw InvalidAccessError
+
+3. /save-subscription → 404 (wrong URL in frontend)
+   BEFORE: apiFetch("/save-subscription", ...)
+   AFTER:  apiFetch("/push/save-subscription", ...)
+   Reason: pushsubs router is mounted with prefix "/push"
+
+4. Duplicate + broken Pydantic models in pushsubs.py (post-merge)
+   The main branch merge left two conflicting SaveSubscriptionRequest
+   classes — first used subscription:dict, second used SubscriptionObject
+   but referenced PushKeys which was never defined. Python uses the last
+   definition. Dict-style access on a Pydantic model crashes at runtime.
+   FIX: Rewrote pushsubs.py cleanly with:
+     class PushKeys(BaseModel): p256dh, auth
+     class SubscriptionObject(BaseModel): endpoint, keys: PushKeys
+     class SaveSubscriptionRequest(BaseModel): userId, subscription: SubscriptionObject
+     class RemoveSubscriptionRequest(BaseModel): userId, endpoint
+   Route functions updated to dot-notation (data.subscription.endpoint, etc.)
+   remove_subscription now uses RemoveSubscriptionRequest (flat: userId + endpoint)
+   matching what the frontend sends.
+
+5. Hardcoded fake userId in Settings.jsx
+   BEFORE: usePushNotifications("123456789")
+   AFTER:  usePushNotifications(user?.id)
+   Effect: every subscription saved under user_id="123456789", never found
+
+6. Double mailto: prefix in VAPID claims (notifications.py)
+   BEFORE: vapid_claims={"sub": f"mailto:{_VAPID_CLAIMS_EMAIL}"}
+           with VAPID_CLAIMS_EMAIL=mailto:fortunenk4jesus@gmail.com
+           → produced "mailto:mailto:fortunenk4jesus@gmail.com"
+   AFTER:  vapid_claims={"sub": _VAPID_CLAIMS_EMAIL}
+
+7. unsubscribe() was an empty stub (usePushNotifications.js)
+   Implemented: get existing subscription via pushManager.getSubscription(),
+   call subscription.unsubscribe(), DELETE /push/remove-subscription,
+   set isSubscribed=false. Wired into handlePushToggle in Settings.jsx.
+
+8. Push toggle disabled when permission denied (Settings.jsx)
+   Added notificationDenied to disabled prop:
+     disabled={pushLoading || !user?.id || notificationDenied}
+
+9. VITE_API_WS_URL missing from .env (dev environment)
+   The WebSocket URL falls back to wss://csdp490server.qr-manager.net
+   when VITE_API_WS_URL is not set. This meant all dev messages went
+   to the production backend — debug prints on localhost never fired.
+   FIX: Added VITE_API_WS_URL=ws://localhost:8000 to .env
+   NOTE: Remove this line to point back to production.
+
+10. Windows socket errors: WinError 10035 (WSAEWOULDBLOCK)
+    All Supabase clients created without HTTP/2 disabled. Under concurrent
+    load on Windows, httpx HTTP/2 multiplexing causes socket blocking.
+    FIX: Upgraded supabase SDK 2.28.0 → 2.28.3
+    Added options=ClientOptions(httpx_client=httpx.Client(http2=False))
+    to the create_client() call in pushsubs.py (main pain point).
+    NOTE: Other routers (messaging.py, users.py, dependencies.py) still
+    use default clients. Apply same fix there if errors reappear.
+
+11. Push toggle resets to OFF on every page refresh
+    isSubscribed initialised to false. The hook never checked existing
+    browser subscription on mount.
+    FIX: Added useEffect in usePushNotifications that calls
+    navigator.serviceWorker.getRegistration(swScope) then
+    pushManager.getSubscription() to set isSubscribed on mount.
+    IMPORTANT: Must use getRegistration(scope) NOT serviceWorker.ready.
+    serviceWorker.ready resolves to the SW controlling the CURRENT PAGE.
+    In dev mode scope is /src/ but the settings page is at /settings —
+    different scope → wrong registration → getSubscription() returns null.
+
+12. Notifications stopped working after renotify:true was added (sw.js)
+    renotify:true requires tag to be a non-empty string or it throws a
+    DOMException that event.waitUntil() swallows silently, killing the
+    notification entirely.
+    FIX: Added tag guard: const tag = payload.tag || "lostlink-default"
+    Added .catch((err) => console.error("[SW] showNotification failed:", err))
+    to surface future errors.
+
+13. handlePushToggle toggle-off lost in merge (Settings.jsx)
+    Post-merge the toggle-off path still had the old TODO stub instead
+    of calling unsubscribe(). Re-applied the fix.
+
+REMAINING KNOWN LIMITATION
+───────────────────────────
+Phone (live app) → local PC: push will not work because the phone
+connects to the production backend (qr-manager.net) which uses its own
+VAPID key pair. Subscriptions created on the local dev session are bound
+to the local VAPID public key. Once this branch is merged and deployed
+to Render, both environments share the same VAPID keys and this resolves.
+
+════════════════════════════════════════════════════════════════════
+PART 2 — WINDOWS BACKEND SOCKET STABILITY
+════════════════════════════════════════════════════════════════════
+
+Root cause: httpx HTTP/2 on Windows causes WinError 10035 under
+concurrent requests (two browser profiles hitting the same server).
+
+Fixes applied:
+- supabase upgraded: 2.28.0 → 2.28.3 (requirements.txt updated)
+- pushsubs.py: ClientOptions(httpx_client=httpx.Client(http2=False))
+
+════════════════════════════════════════════════════════════════════
+PART 3 — NOTIFICATIONS PAGE (frontend, new)
+════════════════════════════════════════════════════════════════════
+
+File: src/pages/Notifications.jsx
+Route: /notifications (already in AppRoutes.jsx)
+Sidebar: already linked in sidebar.jsx
+
+Features built:
+- Header with dynamic unread count message
+- "All" / "Unread" filter tabs with badge
+- "Mark all as read" button (appears only when unreadCount > 0)
+- NotificationCard component: icon (mapped from tag prefix), title,
+  body, timestamp (timeAgo), unread dot, subtle blue bg for unread
+- Tag-to-icon mapping: messages→MessageCircle, match approved→Handshake
+  (green), match rejected→Handshake (red), AI matches→PackageCheck,
+  item closed→PackageCheck, password changed→ShieldCheck, admin→ShieldCheck
+- EmptyState component (different copy for "all" vs "unread" filter)
+- Click navigates to notification.url
+
+Backend integration points (TODOs in file):
+- GET /notifications → load notification list (replace [] with real fetch)
+- POST /notifications/read-all → mark all read
+- POST /notifications/{id}/read → mark single read
+
+Expected notification shape from backend:
+  { id, title, body, tag, url, read, created_at }
+
+════════════════════════════════════════════════════════════════════
+PART 4 — AUDIT LOG DETAIL POPUP
+════════════════════════════════════════════════════════════════════
+
+File: src/pages/AuditLogs.jsx
+Change: LogRow is now clickable → opens AuditLogModal overlay
+Modal shows: action badge, full actor info, full target_type + target_id,
+full details JSON (pretty-printed), timestamp.
+Clicking outside the modal or pressing X closes it.
+
+════════════════════════════════════════════════════════════════════
+PART 5 — DELETE MESSAGE FEATURE
+════════════════════════════════════════════════════════════════════
+
+Backend: DELETE /conversations/{conversation_id}/messages/{message_id}
+  File: Backend/routers/messaging.py
+  Auth: only the sender can delete their own message
+  DB: hard delete from messages table
+  WS broadcast: sends {type:"message_deleted", data:{id}} to all
+    participants in the room so their UI removes it instantly
+
+Frontend: src/pages/ConversationPage.jsx
+  - Own messages get a trash icon on hover (group-hover pattern)
+  - Clicking trash calls DELETE endpoint
+  - On success: removes message from local state
+  - WS onmessage handles type:"message_deleted" to remove from state
+    in real-time on the recipient's side
+
+════════════════════════════════════════════════════════════════════
+KEY FILES CHANGED THIS SESSION
+════════════════════════════════════════════════════════════════════
+
+Frontend:
+  .env                              — VAPID key fixes, WS URL
+  src/hooks/usePushNotifications.js — full rewrite: subscribe, unsubscribe,
+                                      mount check with getRegistration
+  src/pages/Settings.jsx            — real userId, unsubscribe wired,
+                                      notificationDenied in disabled
+  src/pages/Notifications.jsx       — full page built from placeholder
+  src/pages/AuditLogs.jsx           — detail popup modal
+  src/pages/ConversationPage.jsx    — delete message UI
+  src/sw.js                         — renotify:true + tag guard + error catch
+
+Backend:
+  Backend/.env                          — VAPID_CLAIMS_EMAIL fix (mailto: prefix)
+  Backend/routers/pushsubs.py           — full model rewrite, http2=False
+  Backend/routers/notifications.py      — double mailto fix
+  Backend/routers/messaging.py          — delete message endpoint + WS broadcast
+  Backend/requirements.txt             — supabase 2.28.0 → 2.28.3
+
+Documentation:
+  push-notification-fixes.txt   — detailed fix log for push pipeline
+  session-report.txt            — this file
+
+════════════════════════════════════════════════════════════════════
+CONTEXT FOR NEXT SESSION
+════════════════════════════════════════════════════════════════════
+
+IMPORTANT ENVIRONMENT NOTES:
+- Python 3.14 + venv at Backend/venv/
+- Frontend: Vite + React 19 + Tailwind v4 + shadcn/ui
+- Shared Supabase instance — local dev and production both hit same DB
+- No test runner. Verify via uvicorn + browser.
+- Dev WS URL: set VITE_API_WS_URL=ws://localhost:8000 in .env
+  Production WS URL: remove that line (falls back to qr-manager.net)
+- Push notifications work locally (PC). iPhone push requires branch
+  merged + deployed to Render with matching VAPID keys.
+
+NOTIFICATION BACKEND (not yet built):
+- No notifications table in Supabase yet
+- Notifications page shows empty state until GET /notifications endpoint
+  is created and the TODO in Notifications.jsx is uncommented
+- Suggested schema:
+    notifications(id, user_id, title, body, tag, url, read, created_at)
+  Populate by calling supabase.table("notifications").insert() inside
+  each function in notifications.py alongside the existing send_push().
+
+THINGS NOT YET DONE:
+- Email notifications (GMAIL_ADDRESS / GMAIL_APP_PASSWORD are in .env
+  but no send-email logic exists beyond VAPID config)
+- Match Alerts / Message Notifications toggles in Settings are localStorage
+  only — no backend respects them yet
+- Production Render deployment needs ENV=production for secure cookies
