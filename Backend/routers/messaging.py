@@ -239,18 +239,22 @@ async def conversation_websocket(
 
             # 9. Push notification to the recipient if they are not in the WS room
             def push_to_recipient():
+                print(f"[PUSH DEBUG] push_to_recipient() called for conversation={conversation_id}")
                 conv = db_supabase.table("conversations") \
                     .select("user_one_id, user_two_id") \
                     .eq("id", conversation_id) \
                     .single() \
                     .execute()
+                print(f"[PUSH DEBUG] conv.data={conv.data}")
                 if not conv.data:
                     return
                 one, two = conv.data["user_one_id"], conv.data["user_two_id"]
                 recipient_id = two if one == user_id else one
 
                 # Skip push if recipient is already reading the conversation live
-                if recipient_id in room_manager.rooms.get(conversation_id, {}):
+                live_in_room = recipient_id in room_manager.rooms.get(conversation_id, {})
+                print(f"[PUSH DEBUG] recipient={recipient_id} live_in_room={live_in_room} room={dict(room_manager.rooms)}")
+                if live_in_room:
                     return
 
                 # Detect first message so copy reads "started a conversation"
@@ -429,9 +433,12 @@ def send_message_rest(
         }).execute()
 
         # Push notification — skip if recipient is live in the WS room
+        print(f"[PUSH DEBUG REST] reached push block for conversation={conversation_id}")
         one, two = convo.data["user_one_id"], convo.data["user_two_id"]
         recipient_id = two if one == user_id else one
-        if recipient_id not in room_manager.rooms.get(conversation_id, {}):
+        live_in_room = recipient_id in room_manager.rooms.get(conversation_id, {})
+        print(f"[PUSH DEBUG REST] recipient={recipient_id} live_in_room={live_in_room} room={dict(room_manager.rooms)}")
+        if not live_in_room:
             count_res = db_supabase.table("messages") \
                 .select("id", count="exact") \
                 .eq("conversation_id", conversation_id) \

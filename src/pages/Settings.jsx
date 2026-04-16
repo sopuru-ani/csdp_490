@@ -76,7 +76,6 @@ function Settings() {
         }
         const data = await res.json();
         setUser(data);
-        console.log(data);
         setProfileName(
           `${data.first_name || ""} ${data.last_name || ""}`.trim(),
         );

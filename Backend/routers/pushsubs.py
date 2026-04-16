@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import os
-from supabase import create_client, Client
+import httpx
+from supabase import create_client, Client, ClientOptions
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -9,15 +10,17 @@ load_dotenv()
 router = APIRouter(prefix="/push", tags=["push"])
 
 # Uses the service role key so it can bypass RLS when saving subscriptions
+# Windows socket fix: disable HTTP/2 which causes WinError 10035 under concurrent load
 _supabase: Client = create_client(
     os.getenv("SUPABASE_URL"),
-    os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    os.getenv("SUPABASE_SERVICE_ROLE_KEY"),
+    options=ClientOptions(httpx_client=httpx.Client(http2=False))
 )
 
 
-class SaveSubscriptionRequest(BaseModel):
-    subscription: dict
-    userId: str
+class PushKeys(BaseModel):
+    p256dh: str
+    auth: str
 
 
 class SubscriptionObject(BaseModel):
@@ -42,17 +45,12 @@ def save_subscription(data: SaveSubscriptionRequest):
     Uses upsert so re-subscribing (e.g. after browser refresh) doesn't duplicate rows.
     """
     try:
-        endpoint = data.subscription["endpoint"]
-        p256dh = data.subscription["keys"]["p256dh"]
-        auth = data.subscription["keys"]["auth"]
-        user_id = data.userId
-        
         _supabase.table("push_subscriptions").upsert(
             {
-                "user_id": user_id,
-                "endpoint": endpoint,
-                "p256dh": p256dh,
-                "auth": auth,
+                "user_id": data.userId,
+                "endpoint": data.subscription.endpoint,
+                "p256dh": data.subscription.keys.p256dh,
+                "auth": data.subscription.keys.auth,
             },
             on_conflict="user_id,endpoint"
         ).execute()
@@ -65,19 +63,15 @@ def save_subscription(data: SaveSubscriptionRequest):
 
 
 @router.delete("/remove-subscription")
-def remove_subscription(data: SaveSubscriptionRequest):
+def remove_subscription(data: RemoveSubscriptionRequest):
     """
-    Remove a push subscription — called when a user denies notifications
-    or logs out and you want to stop sending pushes to that device.
+    Remove a push subscription — called when a user opts out or logs out.
     """
     try:
-        endpoint = data.subscription["endpoint"]
-        user_id = data.userId
-        
         _supabase.table("push_subscriptions") \
             .delete() \
-            .eq("user_id", user_id) \
-            .eq("endpoint", endpoint) \
+            .eq("user_id", data.userId) \
+            .eq("endpoint", data.endpoint) \
             .execute()
 
         return {"message": "Subscription removed."}
@@ -89,9 +83,8 @@ def remove_subscription(data: SaveSubscriptionRequest):
 
 def get_subscriptions_for_user(user_id: str) -> list[dict]:
     """
-    Helper used internally (e.g. from your email/notification logic) to
-    fetch all active push subscriptions for a given user so you can
-    send them a push notification.
+    Helper used internally (e.g. from notification logic) to fetch all active
+    push subscriptions for a user so we can send them a push notification.
     """
     try:
         result = _supabase.table("push_subscriptions") \

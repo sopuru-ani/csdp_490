@@ -15,10 +15,10 @@ export function usePushNotifications(userId) {
 
 
     async function subscribe() {
-        // if (!userId) {
-        //     console.warn("Cannot subscribe: userId is null");
-        //     return;
-        // }
+        if (!userId) {
+            console.warn("Cannot subscribe: userId is null");
+            return;
+        }
 
         setIsLoading(true);
         try {
