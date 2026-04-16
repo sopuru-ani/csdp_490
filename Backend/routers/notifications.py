@@ -59,7 +59,6 @@ def send_push(
         return
 
     subscriptions = get_subscriptions_for_user(user_id)
-    print(f"[PUSH] Sending to {user_id}: {len(subscriptions)} subscription(s) found")
     dead_endpoints = []
 
     for sub in subscriptions:
