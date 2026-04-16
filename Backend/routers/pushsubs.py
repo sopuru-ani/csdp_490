@@ -15,9 +15,9 @@ _supabase: Client = create_client(
 )
 
 
-class PushKeys(BaseModel):
-    p256dh: str
-    auth: str
+class SaveSubscriptionRequest(BaseModel):
+    subscription: dict
+    userId: str
 
 
 class SubscriptionObject(BaseModel):
@@ -42,12 +42,17 @@ def save_subscription(data: SaveSubscriptionRequest):
     Uses upsert so re-subscribing (e.g. after browser refresh) doesn't duplicate rows.
     """
     try:
+        endpoint = data.subscription["endpoint"]
+        p256dh = data.subscription["keys"]["p256dh"]
+        auth = data.subscription["keys"]["auth"]
+        user_id = data.userId
+        
         _supabase.table("push_subscriptions").upsert(
             {
-                "user_id": data.userId,
-                "endpoint": data.subscription.endpoint,
-                "p256dh": data.subscription.keys.p256dh,
-                "auth": data.subscription.keys.auth,
+                "user_id": user_id,
+                "endpoint": endpoint,
+                "p256dh": p256dh,
+                "auth": auth,
             },
             on_conflict="user_id,endpoint"
         ).execute()
@@ -60,16 +65,19 @@ def save_subscription(data: SaveSubscriptionRequest):
 
 
 @router.delete("/remove-subscription")
-def remove_subscription(data: RemoveSubscriptionRequest):
+def remove_subscription(data: SaveSubscriptionRequest):
     """
     Remove a push subscription — called when a user denies notifications
     or logs out and you want to stop sending pushes to that device.
     """
     try:
+        endpoint = data.subscription["endpoint"]
+        user_id = data.userId
+        
         _supabase.table("push_subscriptions") \
             .delete() \
-            .eq("user_id", data.userId) \
-            .eq("endpoint", data.endpoint) \
+            .eq("user_id", user_id) \
+            .eq("endpoint", endpoint) \
             .execute()
 
         return {"message": "Subscription removed."}

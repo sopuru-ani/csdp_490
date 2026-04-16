@@ -13,7 +13,13 @@ export function usePushNotifications(userId) {
     const [isLoading, setIsLoading] = useState(false);
     const [notificationDenied, setNotificationDenied] = useState(false);
 
+
     async function subscribe() {
+        // if (!userId) {
+        //     console.warn("Cannot subscribe: userId is null");
+        //     return;
+        // }
+
         setIsLoading(true);
         try {
             // 1. Get VAPID key
@@ -48,6 +54,7 @@ export function usePushNotifications(userId) {
                 body: JSON.stringify({ subscription, userId }),
                 headers: { "Content-Type": "application/json" }
             });
+            console.log(JSON.stringify({ subscription, userId }));
 
             setIsSubscribed(true);
         } catch (err) {
