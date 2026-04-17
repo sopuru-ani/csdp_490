@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 import os
 import httpx
 from supabase import create_client, Client, ClientOptions
 from dotenv import load_dotenv
+from routers.dependencies import get_current_user
 
 load_dotenv()
 
@@ -55,6 +56,7 @@ def save_subscription(data: SaveSubscriptionRequest):
             on_conflict="user_id,endpoint"
         ).execute()
 
+        print(f"[PUSH] Saved subscription for user {data.userId} at {data.subscription.endpoint}")
         return {"message": "Subscription saved."}
 
     except Exception as e:
@@ -97,3 +99,27 @@ def get_subscriptions_for_user(user_id: str) -> list[dict]:
     except Exception as e:
         print("GET SUBSCRIPTIONS ERROR:", repr(e))
         return []
+
+
+@router.post("/clear-all-subscriptions")
+def clear_all_subscriptions(request):
+    """
+    DEBUG ENDPOINT: Clear all push subscriptions for the current user.
+    Used when VAPID keys change to force re-subscription with new keys.
+    """
+    try:
+        user_id = request.get("user_id") or request.get("userId")
+        if not user_id:
+            raise HTTPException(status_code=400, detail="user_id is required")
+        
+        result = _supabase.table("push_subscriptions") \
+            .delete() \
+            .eq("user_id", user_id) \
+            .execute()
+        
+        print(f"[PUSH] Cleared all subscriptions for user {user_id}")
+        return {"message": f"Cleared all subscriptions for {user_id}. Please re-subscribe in the app."}
+    
+    except Exception as e:
+        print(f"[PUSH] Error clearing subscriptions:", repr(e))
+        raise HTTPException(status_code=500, detail="Failed to clear subscriptions.")

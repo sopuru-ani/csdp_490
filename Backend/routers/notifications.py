@@ -25,6 +25,7 @@ Admin-only:
 
 import os
 import json
+import base64
 
 from pywebpush import webpush, WebPushException
 from dotenv import load_dotenv
@@ -34,7 +35,19 @@ from routers.dependencies import db_supabase
 
 load_dotenv()
 
-_VAPID_PRIVATE_KEY  = os.getenv("VAPID_PRIVATE_KEY")
+# Decode VAPID private key (handle URL-safe base64 from webpush)
+_VAPID_PRIVATE_KEY_B64 = os.getenv("VAPID_PRIVATE_KEY")
+def decode_vapid_key(key_b64):
+    if not key_b64:
+        return None
+    # Add padding if needed for URL-safe base64
+    # webpush expects the base64 string itself, not decoded bytes
+    padding = 4 - (len(key_b64) % 4)
+    if padding != 4:
+        key_b64 += "=" * padding
+    return key_b64
+
+_VAPID_PRIVATE_KEY = decode_vapid_key(_VAPID_PRIVATE_KEY_B64)
 _VAPID_CLAIMS_EMAIL = os.getenv("VAPID_CLAIMS_EMAIL")
 
 
