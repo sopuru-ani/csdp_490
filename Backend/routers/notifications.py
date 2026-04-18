@@ -25,6 +25,7 @@ Admin-only:
 
 import os
 import json
+import base64
 
 from pywebpush import webpush, WebPushException
 from dotenv import load_dotenv
@@ -34,7 +35,19 @@ from routers.dependencies import db_supabase
 
 load_dotenv()
 
-_VAPID_PRIVATE_KEY  = os.getenv("VAPID_PRIVATE_KEY")
+# Decode VAPID private key (handle URL-safe base64 from webpush)
+_VAPID_PRIVATE_KEY_B64 = os.getenv("VAPID_PRIVATE_KEY")
+def decode_vapid_key(key_b64):
+    if not key_b64:
+        return None
+    # Add padding if needed for URL-safe base64
+    # webpush expects the base64 string itself, not decoded bytes
+    padding = 4 - (len(key_b64) % 4)
+    if padding != 4:
+        key_b64 += "=" * padding
+    return key_b64
+
+_VAPID_PRIVATE_KEY = decode_vapid_key(_VAPID_PRIVATE_KEY_B64)
 _VAPID_CLAIMS_EMAIL = os.getenv("VAPID_CLAIMS_EMAIL")
 
 
@@ -61,12 +74,19 @@ def send_push(
     subscriptions = get_subscriptions_for_user(user_id)
     dead_endpoints = []
 
+    print(f"[PUSH] Sending notification to {user_id}: {len(subscriptions)} subscriptions")
+
     for sub in subscriptions:
+        print(f"[PUSH] Sub keys: p256dh={sub['p256dh']}, auth={sub['auth']}")
+        # Pad base64url to base64 for pywebpush
+        p256dh_padded = sub["p256dh"] + "=" * ((4 - len(sub["p256dh"]) % 4) % 4)
+        auth_padded = sub["auth"] + "=" * ((4 - len(sub["auth"]) % 4) % 4)
+        print(f"[PUSH] Padded: p256dh={p256dh_padded}, auth={auth_padded}")
         try:
             webpush(
                 subscription_info={
                     "endpoint": sub["endpoint"],
-                    "keys": {"p256dh": sub["p256dh"], "auth": sub["auth"]},
+                    "keys": {"p256dh": p256dh_padded, "auth": auth_padded},
                 },
                 data=json.dumps({
                     "title": title,
@@ -78,10 +98,27 @@ def send_push(
                 vapid_private_key=_VAPID_PRIVATE_KEY,
                 vapid_claims={"sub": _VAPID_CLAIMS_EMAIL},
             )
+            print(f"[PUSH] Successfully sent to {user_id} at {sub['endpoint']}")
         except WebPushException as e:
             print(f"[PUSH] WebPushException for {user_id}:", repr(e))
-            if e.response is not None and e.response.status_code in (404, 410):
+            status_code = e.response.status_code if e.response is not None else None
+            response_body = ""
+            if e.response is not None:
+                try:
+                    response_body = e.response.text or ""
+                except Exception:
+                    response_body = ""
+
+            is_vapid_mismatch = (
+                status_code == 403
+                and "vapid credentials" in response_body.lower()
+                and "do not correspond" in response_body.lower()
+            )
+
+            if status_code in (404, 410) or is_vapid_mismatch:
                 dead_endpoints.append(sub["endpoint"])
+                if is_vapid_mismatch:
+                    print(f"[PUSH] Removing stale subscription for {user_id} due to VAPID key mismatch")
         except Exception as e:
             print(f"[PUSH] Error for {user_id}:", repr(e))
 
