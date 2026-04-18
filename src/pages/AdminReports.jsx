@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "@/components/sidebar";
 import { apiFetch } from "@/lib/api";
 
+import { ArrowLeftIcon } from "lucide-react";
+
 const REASON_LABELS = {
   spam: "Spam",
   harassment: "Harassment",
@@ -70,25 +72,35 @@ function AdminReports() {
   return (
     <div className="w-dvw min-h-dvh flex flex-row bg-primary-soft">
       {/* <Sidebar /> */}
-      <div className="p-4 flex-1 flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-bold text-2xl">Abuse Reports</p>
+      <div className="w-full p-4 flex-1 flex flex-col gap-4">
+        <div className="w-full flex items-center justify-between">
+          <div className="w-full">
+            <div className="w-full flex flex-row justify-between items-center">
+              <div className="flex flex-row gap-2 items-center">
+                <button
+                  className="cursor-pointer rounded-full hover:bg-primary-muted p-2"
+                  onClick={() => navigate(-1)}
+                >
+                  <ArrowLeftIcon className="w-5 h-5" />
+                </button>
+                <p className="font-bold text-2xl">Abuse Reports</p>
+              </div>
+              {!loading && (
+                <span
+                  className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                    reports.length > 0
+                      ? "bg-danger-soft text-danger"
+                      : "bg-success-soft text-success"
+                  }`}
+                >
+                  {reports.length} pending
+                </span>
+              )}
+            </div>
             <p className="text-sm text-text-muted">
               Review flagged messages, users, and items
             </p>
           </div>
-          {!loading && (
-            <span
-              className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                reports.length > 0
-                  ? "bg-danger-soft text-danger"
-                  : "bg-success-soft text-success"
-              }`}
-            >
-              {reports.length} pending
-            </span>
-          )}
         </div>
 
         {loading ? (
