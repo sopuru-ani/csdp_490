@@ -61,12 +61,21 @@ def send_push(
     tag: str = "lostlink-default",
 ) -> None:
     """
-    Send a push notification to every registered device for `user_id`.
-
-    Silently removes stale subscriptions that return HTTP 404/410 (browser
-    has unsubscribed or the endpoint expired).  Never raises — safe to call
-    from any route without a try/except wrapper.
+    Persist a notification to the DB and push to every registered device for
+    `user_id`.  Silently removes stale subscriptions (HTTP 404/410).
+    Never raises — safe to call without a try/except wrapper.
     """
+    try:
+        db_supabase.table("notifications").insert({
+            "user_id": user_id,
+            "title":   title,
+            "body":    body,
+            "tag":     tag,
+            "url":     url,
+        }).execute()
+    except Exception as e:
+        print("[NOTIF] DB store error:", repr(e))
+
     if not _VAPID_PRIVATE_KEY or not _VAPID_CLAIMS_EMAIL:
         print("[PUSH] VAPID not configured — skipping notification")
         return

@@ -12,6 +12,7 @@ Routers:
   messaging   — /ws/*, /conversations/*   WebSocket + REST messaging
   users       — /users/*           profile, password, privacy settings
   pushsubs    — /push/*            web push subscriptions
+  notiflist   — /notifications/*   in-app notification feed
 """
 
 import os
@@ -23,7 +24,7 @@ from dotenv import load_dotenv
 
 
 from routers.dependencies import limiter
-from routers import auth, items, matches, admin, messaging, users, pushsubs
+from routers import auth, items, matches, admin, messaging, users, pushsubs, notiflist
 
 load_dotenv()
 
@@ -61,6 +62,7 @@ app.include_router(admin.router)
 app.include_router(messaging.router)
 app.include_router(users.router)
 app.include_router(pushsubs.router)
+app.include_router(notiflist.router)
 
 # ── Health check ──────────────────────────────────────────────────────────────
 
