@@ -128,6 +128,39 @@ def logout(response: Response):
     return {"message": "Logout successful"}
 
 
+@router.post("/refresh")
+def refresh(request: Request, response: Response):
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="No refresh token")
+    try:
+        auth_response = auth_supabase.auth.refresh_session(refresh_token)
+        if not auth_response.session:
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
+        response.set_cookie(
+            key="access_token",
+            value=auth_response.session.access_token,
+            httponly=True,
+            secure=COOKIE_SECURE,
+            samesite=COOKIE_SAMESITE,
+            max_age=60 * 60,
+        )
+        response.set_cookie(
+            key="refresh_token",
+            value=auth_response.session.refresh_token,
+            httponly=True,
+            secure=COOKIE_SECURE,
+            samesite=COOKIE_SAMESITE,
+            max_age=60 * 60 * 24 * 7,
+        )
+        return {"message": "Token refreshed"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("REFRESH ERROR:", repr(e))
+        raise HTTPException(status_code=401, detail="Token refresh failed")
+
+
 @router.get("/token")
 def get_token(request: Request, current_user=Depends(get_current_user)):
     # User is already verified; safe to hand back the cookie value for WS auth
