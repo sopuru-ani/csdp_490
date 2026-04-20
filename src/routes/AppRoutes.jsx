@@ -16,6 +16,8 @@ import Notifications from "@/pages/Notifications";
 import DevMap from "@/pages/DevMap";
 import Dev from "@/pages/Dev";
 
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import Overview from "@/Overview";
 
 function AppRoutes() {
@@ -24,6 +26,8 @@ function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/reportlost" element={<ReportLost />} />
       <Route path="/reportfound" element={<ReportFound />} />
       <Route path="/messages/:conversationId" element={<ConversationPage />} />

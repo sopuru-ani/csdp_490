@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   PanelLeft,
   MessageCircle,
@@ -10,9 +10,18 @@ import {
   Megaphone,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { apiFetch } from "../lib/api";
 
 function Sidebar({ collapsed, setCollapsed }) {
-  const [user, setUser] = useState(null); // Placeholder user data
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    apiFetch("/auth/userchecker")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (data) setUser(data); })
+      .catch(() => {});
+  }, []);
+
   return (
     <div
       className={`h-dvh border-r border-gray flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
@@ -117,22 +126,22 @@ function Sidebar({ collapsed, setCollapsed }) {
         {collapsed ? (
           <div className="flex justify-center">
             <div className="w-10 h-10 rounded-full bg-primary-muted flex items-center justify-center text-md font-bold shadow-sm">
-              {user?.first_name[0] || "N"}
-              {user?.last_name[0] || "A"}
+              {user?.first_name?.[0] ?? "?"}
+              {user?.last_name?.[0] ?? ""}
             </div>
           </div>
         ) : (
           <div className="flex flex-row items-center gap-2">
             <div className="w-10 h-10 rounded-full bg-primary-muted flex items-center justify-center text-md font-bold shadow-sm">
-              {user?.first_name[0] || "N"}
-              {user?.last_name[0] || "A"}
+              {user?.first_name?.[0] ?? "?"}
+              {user?.last_name?.[0] ?? ""}
             </div>
             <div>
               <p className="whitespace-nowrap text-sm font-bold transition-opacity delay-75">
-                {user?.first_name || "Not Available"}
+                {user ? `${user.first_name} ${user.last_name}` : "Loading..."}
               </p>
               <p className="whitespace-nowrap text-xs transition-opacity delay-75">
-                User
+                {user?.is_admin ? "Admin" : "User"}
               </p>
             </div>
           </div>
