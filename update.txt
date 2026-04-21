@@ -1,0 +1,111 @@
+LostLink — Update Log
+Date: 2026-04-20
+Feature: Account-level login attempt limiting
+Files changed: Backend/routers/auth.py, src/pages/Login.jsx
+=======================================================
+
+WHAT WAS DONE
+-------------
+Added brute-force protection to the login flow using a Supabase table
+(login_attempts) that tracks failed attempts per email address.
+
+SUPABASE TABLE REQUIRED
+-----------------------
+  CREATE TABLE login_attempts (
+    email        text PRIMARY KEY,
+    failed_count integer NOT NULL DEFAULT 0,
+    locked_until timestamptz
+  );
+  -- RLS off; accessed via service role key only.
+
+BACKEND (Backend/routers/auth.py)
+----------------------------------
+Four helper functions were added above the route definitions:
+
+  _get_attempt_row(email)
+    Fetches the login_attempts row for an email. Returns None on DB error
+    so a DB outage never blocks login.
+
+  _is_locked(row) -> (bool, iso_string | None)
+    Returns whether the account is currently locked and the locked_until
+    timestamp. Treats expired locks as unlocked.
+
+  _effective_count(row) -> int
+    Returns the current failed_count, but resets to 0 if a previous lock
+    window has expired — so each lockout window is independent.
+
+  _record_failure(email, current_count)
+    Increments the counter. If the new count reaches MAX_ATTEMPTS (5),
+    sets locked_until = now + 10 minutes. Upserts the row.
+
+  _clear_attempts(email)
+    Resets failed_count to 0 and locked_until to NULL on successful login.
+
+The POST /auth/login route now follows this exact order:
+
+  1. Fetch the login_attempts row for the email.
+  2. If locked_until is in the future → raise 423 immediately.
+     Supabase Auth is NOT called during lockout.
+  3. Call auth_supabase.auth.sign_in_with_password().
+  4. On success → _clear_attempts(), set cookies, return 200.
+  5. On failure → _record_failure():
+       - If new count < 5 → raise 401 with attempts_remaining in detail.
+       - If new count reaches 5 → raise 423 with locked_until in detail.
+
+Response shapes:
+  401 (bad credentials):
+    {"detail": {"message": "Invalid credentials", "attempts_remaining": N}}
+
+  423 (locked):
+    {"detail": {"locked_until": "2026-04-20T12:34:56.123456+00:00"}}
+
+Constants:
+  _MAX_ATTEMPTS = 5   (lock after 5 failures)
+  _LOCK_MINUTES = 10  (lock duration)
+
+FRONTEND (src/pages/Login.jsx)
+-------------------------------
+New state added:
+  attemptsRemaining  — integer or null; drives the yellow warning banner
+  lockedUntil        — Date object or null; drives the lockout UI
+  countdown          — "MM:SS" string; updated every second via useEffect
+
+On 423 response:
+  Sets lockedUntil from data.detail.locked_until.
+  A useEffect ticks down countdown every second.
+  When countdown hits 0:00 the lockout state clears automatically and
+  the user can try again without refreshing the page.
+
+On 401 response:
+  Extracts attempts_remaining from the structured detail object.
+  Shows a yellow warning: "X attempt(s) remaining before your account is
+  locked for 10 minutes."
+
+During lockout:
+  - Red "Account temporarily locked" banner shows with live MM:SS countdown.
+  - "Forgot your password?" link appears inside the banner.
+  - Email and password inputs are disabled (opacity-50, cursor-not-allowed).
+  - Submit button is disabled and shows "Locked — MM:SS" as its label.
+  - Regular error banner is hidden (replaced by lockout banner).
+
+On successful login:
+  attemptsRemaining is cleared so the warning doesn't persist.
+
+HOW IT AFFECTS THE APP
+-----------------------
+- Normal login flow is unchanged. First 4 failed attempts get a 401 with
+  a warning. The 5th failed attempt returns a 423 and locks the account.
+- Locked accounts cannot reach Supabase Auth at all during the window.
+  This prevents credential stuffing from burning Supabase Auth rate limits.
+- The slowapi IP-level rate limit (10/minute on /auth/login) still applies
+  on top of this, providing two layers of protection.
+- Lock expires automatically after 10 minutes. The frontend countdown
+  clears the UI without a page reload.
+- Successful login always resets the counter, so a user who fails 3 times
+  then succeeds starts fresh.
+- If the login_attempts table is unreachable (DB error), _get_attempt_row
+  returns None and the login proceeds normally — the lockout is skipped
+  rather than blocking legitimate users due to a DB issue.
+- The "forgot password?" link was already in the UI as a dead link; it now
+  also appears prominently inside the lockout banner. It points to
+  /forgot-password (route not yet implemented).

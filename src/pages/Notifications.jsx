@@ -45,14 +45,10 @@ function Notifications() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await apiFetch("/auth/userchecker");
-        if (!res.ok) { navigate("/login"); return; }
-
-        // TODO: replace with real endpoint when backend is ready
-        // const res2 = await apiFetch("/notifications");
-        // const data = await res2.json();
-        // setNotifications(data);
-        setNotifications([]);
+        const res = await apiFetch("/notifications");
+        if (res.status === 401) { navigate("/login"); return; }
+        const data = await res.json();
+        setNotifications(data);
       } catch {
         navigate("/login");
       } finally {
@@ -64,14 +60,14 @@ function Notifications() {
 
   async function markAllRead() {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    // TODO: await apiFetch("/notifications/read-all", { method: "POST" });
+    await apiFetch("/notifications/read-all", { method: "POST" });
   }
 
   async function markRead(id) {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
-    // TODO: await apiFetch(`/notifications/${id}/read`, { method: "POST" });
+    await apiFetch(`/notifications/${id}/read`, { method: "POST" });
   }
 
   function handleClick(notification) {

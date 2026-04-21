@@ -1,0 +1,196 @@
+LostLink — Project Status
+As of: 2026-04-20
+Branch: Backend
+=======================================================
+
+OVERVIEW
+--------
+LostLink is a campus lost & found management system with AI-powered item
+matching, real-time messaging, and push notifications. Built on React (Vite)
+frontend + FastAPI backend + Supabase (PostgreSQL + Auth + Storage).
+
+=======================================================
+WHAT WORKS (COMPLETED & VERIFIED)
+=======================================================
+
+AUTH
+----
+- Sign up, login, logout with httpOnly cookie-based sessions
+- Session longevity: access token (1 hr) + refresh token (7 days) cookies
+- POST /auth/refresh endpoint: silently refreshes expired access tokens
+- Auto-refresh in apiFetch: any 401 (except /auth/login and /auth/refresh
+  itself) triggers one automatic token refresh then replays the original
+  request. Redirects to /login if refresh also fails. isRefreshing flag
+  prevents infinite loops.
+- Password change with security notification sent to user
+
+ITEMS
+-----
+- Create lost and found item reports with image upload
+- View all open items on the dashboard
+- Delete your own open items (closed items are protected)
+- Admin can view all items
+
+AI MATCHING
+-----------
+- GET /items/{item_id}/matches: sends item data + signed image URLs to
+  Google Gemini 2.5 Flash Lite
+- Returns up to 5 candidates scoring >= 40 (0-100 scale)
+- Category-first matching with fallback to all items
+- AI match push notification + in-app notification sent to item owner
+  when matches are found
+
+MATCH REQUEST WORKFLOW
+----------------------
+- Users can submit a match request (creates pending match row)
+- Owner of the matched item gets notified ("someone matched your item")
+- Admins get notified of all pending match requests
+- Admin review: approve or reject
+  - Approved: both items closed, conversation opened between the two users,
+    both parties notified via push + in-app notification
+  - Rejected: requester notified via push + in-app notification
+
+REAL-TIME MESSAGING
+-------------------
+- WebSocket-based messaging (RoomManager holds in-memory room state)
+- REST fallback for sending messages
+- Smart push: push notification only sent if recipient is NOT live in the
+  WebSocket room
+- Message deletion: users can delete their own messages; deletion is
+  broadcast over WebSocket so all connected clients remove it instantly
+  (DELETE /conversations/{conversation_id}/messages/{message_id})
+- Hovering a message you sent shows a trash icon (frontend)
+
+PUSH NOTIFICATIONS (WEB PUSH / VAPID)
+--------------------------------------
+- Full Web Push Protocol implementation with VAPID keys
+- Subscriptions stored in push_subscriptions table (per user, per device)
+- usePushNotifications hook:
+  - On mount: reads existing browser subscription and reflects its state
+    in the toggle so it doesn't reset to OFF on page refresh
+  - VAPID key rotation: detects when an existing subscription was created
+    with a different VAPID key, cleanly removes it from backend and
+    re-subscribes with the current key (fixes 403 errors)
+  - Reuses existing SW registration instead of re-registering every time
+- Dead endpoint pruning: 404/410 responses auto-delete stale subscriptions
+- Notification events wired up: AI matches, match approved/rejected,
+  someone requested your item, new message, item closed, password changed,
+  admin alerts (match pending, report pending)
+
+IN-APP NOTIFICATION FEED
+------------------------
+- notifications table in Supabase stores every notification event
+- send_push() in notifications.py now persists to DB first, then delivers
+  push — so notifications appear in the feed even without push permission
+- GET /notifications: returns 50 most recent for current user
+- POST /notifications/{id}/read: marks one as read
+- POST /notifications/read-all: marks all unread as read
+- Notifications.jsx: fully functional feed with:
+  - Icon + color per notification type (message, match, AI, admin, security)
+  - Unread indicator dot + count badge
+  - "Mark all as read" button
+  - Filter tabs: All / Unread
+  - Relative timestamps (just now, 5m ago, 2h ago, 3d ago)
+  - Clicking a notification marks it read and navigates to its url
+
+ADMIN PANEL
+-----------
+- Audit log viewer with filter by action type
+- Clicking a log row opens a detail modal (added recently)
+- Abuse report submission and admin review workflow
+- Admin push notifications for pending items
+
+SETTINGS
+--------
+- Push notification toggle (reflects real subscription state)
+- Profile edit, password change
+
+=======================================================
+WHAT DOES NOT WORK / NOT YET IMPLEMENTED
+=======================================================
+
+SYSTEM/EXPIRY REMINDERS
+------------------------
+- Intentionally deferred. No item expiry or "your post expires soon"
+  notification has been built. Decision pending.
+
+NOTIFICATIONS TABLE — RLS
+--------------------------
+- If Supabase Row Level Security is enabled on the notifications table,
+  the backend service role key bypasses it (correct), but confirm RLS
+  is configured so users cannot read each other's notifications via
+  the Supabase client directly.
+
+WEBSOCKET MULTI-SERVER SCALABILITY
+------------------------------------
+- RoomManager is purely in-memory. If the backend ever runs on more than
+  one server instance (horizontal scaling), users on different instances
+  won't receive each other's messages. Not a current issue for single
+  Render deployment.
+
+NO AUTOMATED TESTS
+-------------------
+- No test suite exists. Endpoint verification requires running the server
+  and hitting /docs manually.
+
+=======================================================
+COMPLETED SINCE "notification ehhhhhhhh" COMMIT (b3d352d)
+=======================================================
+
+Commit: 53d1cbc — requirements.txt and push notifications useEffect added
+  - Added useEffect to read existing push subscription state on mount
+  - Updated requirements.txt
+
+Commit: ecb76b2 — Fix push toggle state on refresh and notification popup
+  - Toggle now reflects real browser subscription state after page refresh
+  - Notification popup polish
+
+Commit: 92b699a — made new notifications page, untested and unapproved
+  - Initial Notifications.jsx scaffold with UI but stubbed-out API calls
+
+Commit: 2000100 — Can delete messages now
+  - DELETE /conversations/{cid}/messages/{mid} endpoint (sender only)
+  - WebSocket broadcast of message_deleted event
+  - Trash icon appears on hover for your own messages (frontend)
+
+Commit: 7a38a35 — Merge PR #14 from Backend
+  - Integration of backend branch into main
+
+Commit: d06fcc2 / b6b2960 — vite-plugin-pwa update to 1.2.0
+  - Dependency bump
+
+Commit: 9bf006f — fixed pip dependencies version issues
+  - requirements.txt version pinning fixes
+
+Commit: 06b13cb — Fix push VAPID mismatch handling and subscription rotation
+  - usePushNotifications: detects stale VAPID key on existing subscription,
+    removes it from backend, unsubscribes from browser, re-subscribes clean
+  - Reuses existing SW registration instead of re-registering
+  - Dead endpoint pruning on 404/410/VAPID-mismatch 403
+
+Commit: 0b77b49 — THANK GOD. JESUS (various push/messaging fixes)
+
+Commit: c8d3a9b — Merge Backend branch
+
+Commit: 8c87f42 — Longevity of auth/logged in fixed
+  - POST /auth/refresh endpoint added to auth.py
+  - apiFetch in api.js wraps all requests with automatic 401 → refresh →
+    retry logic (isRefreshing flag prevents loops)
+  - refresh_token cookie set to 7-day max_age on login
+
+Commit: ec816f9 — Notifications page made, fully functional
+  - Notifications.jsx wired to real API endpoints
+  - send_push() now persists every notification to the notifications DB table
+  - notiflist.py router created (GET /notifications, POST read/read-all)
+  - notiflist router registered in main.py
+  - AuditLogs.jsx: clickable rows open detail modal, code cleanup
+
+=======================================================
+DEPLOYMENT NOTES
+=======================================================
+- Frontend → Vercel (csdp490.vercel.app)
+- Backend → Render (single instance)
+- Update src/lib/api.js API_URL before any production deploy
+- Set ENV=production on backend for secure/SameSite=None cookies (required
+  for cross-origin cookie delivery from Vercel → Render)
+- VITE_API_WS_URL must point to production backend for WebSocket to work
