@@ -4,30 +4,33 @@ import { apiFetch } from "@/lib/api";
 
 function ResetPassword() {
   const navigate = useNavigate();
-  const [token, setToken]           = useState("");
-  const [tokenError, setTokenError] = useState(false);
-  const [password, setPassword]     = useState("");
-  const [confirm, setConfirm]       = useState("");
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState("");
-  const [done, setDone]             = useState(false);
 
-  // Supabase puts the recovery token in the URL hash:
+  // Supabase puts the recovery token in the URL hash on arrival:
   // /reset-password#access_token=xxx&type=recovery
-  useEffect(() => {
-    const hash   = window.location.hash.slice(1); // strip leading #
+  // Extract it synchronously in the initializer so it is captured before
+  // React StrictMode's second effect invocation clears the hash.
+  // No backend call happens here — only the form submit POSTs to the server.
+  const [token] = useState(() => {
+    const hash   = window.location.hash.slice(1);
     const params = new URLSearchParams(hash);
     const t      = params.get("access_token");
     const type   = params.get("type");
+    return (t && type === "recovery") ? t : "";
+  });
 
-    if (!t || type !== "recovery") {
-      setTokenError(true);
-      return;
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm]   = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState("");
+  const [done, setDone]         = useState(false);
+
+  // Clean the token out of the URL bar. Runs after mount; idempotent if
+  // StrictMode invokes it twice.
+  useEffect(() => {
+    if (token) {
+      window.history.replaceState(null, "", window.location.pathname);
     }
-    setToken(t);
-    // Clean the token out of the URL bar without triggering a navigation
-    window.history.replaceState(null, "", window.location.pathname);
-  }, []);
+  }, [token]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -60,7 +63,7 @@ function ResetPassword() {
     }
   }
 
-  if (tokenError) {
+  if (!token) {
     return (
       <div className="w-dvw min-h-dvh flex flex-col justify-center items-center p-4 bg-primary-soft">
         <div className="w-full max-w-150 p-4 rounded-md flex flex-col gap-4">

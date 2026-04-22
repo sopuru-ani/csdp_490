@@ -79,12 +79,12 @@
   --color-border-strong: #94a3b8;
   --color-border-focus: #3b82f6;
 
-  /* --- Text --- */
-  --color-text: #0f172a;
-  --color-text-secondary: #475569;
-  --color-text-muted: #94a3b8;
+  /* --- Text (Improved contrast) --- */
+  --color-text: #1a2638;
+  --color-text-secondary: #374a62;
+  --color-text-muted: #6b7a8f;
   --color-text-inverse: #ffffff;
-  --color-text-link: #2563eb;
+  --color-text-link: #1e5a96;
 
   /* --- Feedback --- */
   --color-success: #22c55e;
@@ -131,49 +131,50 @@
 }
 
 /* ============================================================
-   DARK MODE
+   DARK MODE (Revamped)
+   Pleasant, balanced colors - not too bright, not too dim
    ============================================================ */
 
 .dark {
   /* --- Primary (Blue) --- */
-  --color-primary: #60a5fa;
-  --color-primary-soft: #1e3a5f;
-  --color-primary-hover: #93c5fd;
-  --color-primary-muted: #1d4ed840;
+  --color-primary: #5eb3f6;
+  --color-primary-soft: #162d47;
+  --color-primary-hover: #7ec7ff;
+  --color-primary-muted: #1d4ed850;
 
   /* --- Secondary (Amber) --- */
-  --color-secondary: #fbbf24;
-  --color-secondary-soft: #451a03;
-  --color-secondary-hover: #fcd34d;
-  --color-secondary-muted: #92400e40;
+  --color-secondary: #f4c775;
+  --color-secondary-soft: #3d2515;
+  --color-secondary-hover: #f8d996;
+  --color-secondary-muted: #92400e50;
 
   /* --- Backgrounds --- */
-  --color-bg: #0c1526;
-  --color-bg-raised: #111e33;
-  --color-bg-sunken: #091020;
-  --color-bg-overlay: #111e33cc;
+  --color-bg: #0f1622;
+  --color-bg-raised: #151d2d;
+  --color-bg-sunken: #0a1018;
+  --color-bg-overlay: #151d2ddd;
 
   /* --- Borders --- */
-  --color-border: #1e2d45;
-  --color-border-strong: #2d4a6e;
-  --color-border-focus: #60a5fa;
+  --color-border: #1f3451;
+  --color-border-strong: #3d5a82;
+  --color-border-focus: #5eb3f6;
 
-  /* --- Text --- */
-  --color-text: #e2e8f0;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted: #475569;
+  /* --- Text (Improved brightness) --- */
+  --color-text: #e5ecf5;
+  --color-text-secondary: #b4c5db;
+  --color-text-muted: #7a8fa5;
   --color-text-inverse: #0f172a;
-  --color-text-link: #60a5fa;
+  --color-text-link: #5eb3f6;
 
   /* --- Feedback --- */
-  --color-success: #4ade80;
-  --color-success-soft: #052e16;
-  --color-warning: #fbbf24;
-  --color-warning-soft: #451a03;
-  --color-danger: #f87171;
-  --color-danger-soft: #450a0a;
-  --color-info: #60a5fa;
-  --color-info-soft: #1e3a5f;
+  --color-success: #5fdd9d;
+  --color-success-soft: #0f3d28;
+  --color-warning: #f4c775;
+  --color-warning-soft: #3d2515;
+  --color-danger: #f97e7e;
+  --color-danger-soft: #4a1515;
+  --color-info: #5eb3f6;
+  --color-info-soft: #162d47;
 
   /* ========================================================
      SHADCN TOKEN BRIDGE (dark)

@@ -283,6 +283,8 @@ async def conversation_websocket(
 @router.get("/conversations")
 def get_my_conversations(current_user=Depends(get_current_user)):
     """List all conversations the current user is part of."""
+    from collections import Counter
+
     try:
         user_id = current_user["id"]
 
@@ -301,7 +303,22 @@ def get_my_conversations(current_user=Depends(get_current_user)):
             .order("created_at", desc=True) \
             .execute()
 
-        return {"conversations": response.data}
+        conversations = response.data or []
+
+        # Fetch unread counts for all conversations in one query, then attach
+        if conversations:
+            conv_ids = [c["id"] for c in conversations]
+            unread_res = db_supabase.table("messages") \
+                .select("conversation_id") \
+                .in_("conversation_id", conv_ids) \
+                .eq("read", False) \
+                .neq("sender_id", user_id) \
+                .execute()
+            counts = Counter(m["conversation_id"] for m in (unread_res.data or []))
+            for convo in conversations:
+                convo["unread_count"] = counts.get(convo["id"], 0)
+
+        return {"conversations": conversations}
 
     except Exception as e:
         print("GET CONVERSATIONS ERROR:", repr(e))
