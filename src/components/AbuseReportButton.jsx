@@ -70,7 +70,7 @@ function ReportButton({ targetType, targetId, reportedUserId }) {
           onClick={() => setOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl w-full max-w-sm p-6 flex flex-col gap-4 shadow-lg"
+            className="bg-bg-raised rounded-2xl w-full max-w-sm p-6 flex flex-col gap-4 shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
             <div>
@@ -120,14 +120,14 @@ function ReportButton({ targetType, targetId, reportedUserId }) {
                 onChange={(e) => setDetails(e.target.value)}
                 placeholder="Describe what happened..."
                 rows={2}
-                className="outline-none px-3 py-2.5 rounded-xl bg-white border border-gray-300 focus:border-secondary focus:ring-2 ring-secondary-muted text-sm resize-none transition-all duration-200"
+                className="outline-none px-3 py-2.5 rounded-xl bg-bg-raised border border-border-strong focus:border-secondary focus:ring-2 ring-secondary-muted text-sm resize-none transition-all duration-200"
               />
             </div>
 
             <div className="flex gap-2">
               <button
                 onClick={() => setOpen(false)}
-                className="flex-1 px-4 py-2 rounded-xl border border-gray-300 hover:bg-primary-muted text-sm cursor-pointer transition-all duration-200"
+                className="flex-1 px-4 py-2 rounded-xl border border-border hover:bg-primary-muted text-sm cursor-pointer transition-all duration-200"
               >
                 Cancel
               </button>

@@ -190,9 +190,9 @@ function ConversationPage() {
   return (
     // <div className="w-full h-dvh p-3 sm:p-4 md:p-6 flex flex-col overflow-hidden">
     <div className="w-full h-dvh flex flex-col overflow-hidden">
-      <div className="w-full h-full flex flex-col bg-white border border-gray-200 shadow-md overflow-hidden">
+      <div className="w-full h-full flex flex-col bg-bg-raised border border-border shadow-md overflow-hidden">
         {/* Header */}
-        <div className="p-5 border-b border-gray-200 bg-white flex items-center gap-3">
+        <div className="p-5 border-b border-border bg-bg-raised flex items-center gap-3">
           <button
             onClick={() => navigate("/messages")}
             className="p-2 rounded-lg hover:bg-primary-muted transition-all duration-200"
@@ -240,7 +240,7 @@ function ConversationPage() {
                     className={`max-w-sm px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
                       isMine
                         ? "bg-secondary text-white rounded-br-md"
-                        : "bg-white border border-gray-200 rounded-bl-md"
+                        : "bg-bg-raised border border-border rounded-bl-md"
                     }`}
                   >
                     <p className="whitespace-pre-wrap wrap-break-word break-all text-sm sm:text-base">

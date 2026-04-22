@@ -110,7 +110,7 @@ function AdminMatches() {
             Pending
             {pending.length > 0 && (
               <span
-                className={`text-xs bg-warning text-white font-bold w-5 h-5 flex items-center justify-center rounded-full ${tab === "pending" ? "text-secondary! bg-white" : ""}`}
+                className={`text-xs bg-warning text-white font-bold w-5 h-5 flex items-center justify-center rounded-full ${tab === "pending" ? "text-secondary! bg-bg-raised" : ""}`}
               >
                 {pending.length}
               </span>
@@ -183,7 +183,7 @@ function MatchReviewCard({ match, mode, onApprove, onReject }) {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
+    <div className="bg-bg-raised rounded-xl border border-border p-4 flex flex-col gap-4">
       {/* Requester */}
       {match.requester && (
         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -272,7 +272,7 @@ function ItemSummary({ item, label }) {
   if (!item) return null;
   const isLost = item.item_type === "lost";
   return (
-    <div className="flex flex-col gap-1 p-3 rounded-lg bg-primary-soft border border-gray-200">
+    <div className="flex flex-col gap-1 p-3 rounded-lg bg-primary-soft border border-border">
       <p className="text-xs text-text-muted font-semibold">{label}</p>
       <div className="flex items-center gap-1.5">
         <span

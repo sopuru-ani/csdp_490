@@ -190,19 +190,19 @@ function ReportForm({ type = "lost" }) {
   };
 
   const inputClass = (field) =>
-    `outline-none px-4 py-3 rounded-xl bg-white focus:bg-secondary-soft border ${
-      errors[field] ? "border-danger" : "border-gray-300"
+    `outline-none px-4 py-3 rounded-xl bg-bg-raised focus:bg-secondary-soft border ${
+      errors[field] ? "border-danger" : "border-border-strong"
     } ring-secondary-muted focus:ring-2 text-sm w-full transition-all duration-200`;
 
   // Shared style for the date trigger button
   const dateTriggerClass = (field, hasValue) =>
-    `flex items-center justify-between w-full px-4 py-3 rounded-xl bg-white border ${
-      errors[field] ? "border-danger" : "border-gray-300"
+    `flex items-center justify-between w-full px-4 py-3 rounded-xl bg-bg-raised border ${
+      errors[field] ? "border-danger" : "border-border-strong"
     } ring-secondary-muted hover:bg-secondary-soft focus:ring-2 text-sm cursor-pointer transition-all duration-200`;
 
   return (
     <div className="w-full min-h-screen flex flex-col justify-center items-center p-3 sm:p-4 md:p-6 bg-primary-soft">
-      <div className="w-full max-w-150 p-4 sm:p-6 rounded-2xl bg-white border border-gray-200 shadow-md flex flex-col gap-6">
+      <div className="w-full max-w-150 p-4 sm:p-6 rounded-2xl bg-bg-raised border border-border shadow-md flex flex-col gap-6">
         {/* Header */}
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 mb-1">
@@ -269,9 +269,9 @@ function ReportForm({ type = "lost" }) {
               }
             >
               <SelectTrigger
-                className={`h-auto p-3.5 rounded-xl bg-white border ${
-                  errors.category ? "border-danger" : "border-gray-300"
-                } ring-secondary-muted focus:ring-2 focus-visible:ring-2 text-sm border-gray-300 hover:bg-secondary-soft transition-all duration-200`}
+                className={`h-auto p-3.5 rounded-xl bg-bg-raised border ${
+                  errors.category ? "border-danger" : "border-border-strong"
+                } ring-secondary-muted focus:ring-2 focus-visible:ring-2 text-sm hover:bg-secondary-soft transition-all duration-200`}
               >
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
@@ -360,7 +360,7 @@ function ReportForm({ type = "lost" }) {
                         className={dateTriggerClass("dateFrom", !!dateFrom)}
                       >
                         <span
-                          className={dateFrom ? "text-text" : "text-gray-400"}
+                          className={dateFrom ? "text-text" : "text-text-muted"}
                         >
                           {dateFrom
                             ? format(dateFrom, "MMM d, yyyy")
@@ -398,7 +398,7 @@ function ReportForm({ type = "lost" }) {
                     <PopoverTrigger asChild>
                       <button className={dateTriggerClass("dateTo", !!dateTo)}>
                         <span
-                          className={dateTo ? "text-text" : "text-gray-400"}
+                          className={dateTo ? "text-text" : "text-text-muted"}
                         >
                           {dateTo
                             ? format(dateTo, "MMM d, yyyy")
@@ -431,7 +431,7 @@ function ReportForm({ type = "lost" }) {
               <Popover open={dateOpen} onOpenChange={setDateOpen}>
                 <PopoverTrigger asChild>
                   <button className={dateTriggerClass("date", !!date)}>
-                    <span className={date ? "text-text" : "text-gray-400"}>
+                    <span className={date ? "text-text" : "text-text-muted"}>
                       {date ? format(date, "MMM d, yyyy") : "Pick a date"}
                     </span>
                     <CalendarIcon className="w-4 h-4 text-text-muted" />
@@ -469,7 +469,7 @@ function ReportForm({ type = "lost" }) {
             {images.length < 5 && (
               <label
                 htmlFor="image"
-                className="flex flex-col items-center justify-center gap-2 px-4 py-7 rounded-2xl bg-white border border-dashed border-gray-300 hover:bg-secondary-soft hover:border-secondary cursor-pointer transition-all duration-200 shadow-sm"
+                className="flex flex-col items-center justify-center gap-2 px-4 py-7 rounded-2xl bg-bg-raised border border-dashed border-border-strong hover:bg-secondary-soft hover:border-secondary cursor-pointer transition-all duration-200 shadow-sm"
               >
                 <Upload className="w-5 h-5 text-text-muted" />
                 <span className="text-sm text-text-muted">
@@ -496,7 +496,7 @@ function ReportForm({ type = "lost" }) {
                 {previews.map((src, i) => (
                   <div
                     key={i}
-                    className="relative rounded-xl overflow-hidden border border-gray-300 shadow-sm"
+                    className="relative rounded-xl overflow-hidden border border-border shadow-sm"
                   >
                     <img
                       src={src}
@@ -506,7 +506,7 @@ function ReportForm({ type = "lost" }) {
                     <button
                       type="button"
                       onClick={() => removeImage(i)}
-                      className="absolute top-1 right-1 bg-white rounded-full w-6 h-6 flex items-center justify-center text-danger text-xs shadow-sm cursor-pointer hover:bg-danger-soft transition-all duration-200"
+                      className="absolute top-1 right-1 bg-bg-raised rounded-full w-6 h-6 flex items-center justify-center text-danger text-xs shadow-sm cursor-pointer hover:bg-danger-soft transition-all duration-200"
                     >
                       ✕
                     </button>

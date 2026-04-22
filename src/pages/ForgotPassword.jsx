@@ -72,7 +72,7 @@ function ForgotPassword() {
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="outline-none px-3 py-3 rounded-lg bg-white focus:bg-secondary-soft border border-gray-300 ring-gray-300 focus:ring-1 text-sm"
+                  className="outline-none px-3 py-3 rounded-lg bg-bg-raised focus:bg-secondary-soft border border-border-strong ring-border-strong focus:ring-1 text-sm"
                 />
               </div>
 

@@ -111,7 +111,7 @@ function LogRow({ log, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="bg-white rounded-lg border border-gray-200 px-4 py-3 flex items-center gap-4 w-full text-left hover:border-secondary hover:shadow-sm transition-all duration-200 cursor-pointer"
+      className="bg-bg-raised rounded-lg border border-border px-4 py-3 flex items-center gap-4 w-full text-left hover:border-secondary hover:shadow-sm transition-all duration-200 cursor-pointer"
     >
       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${meta.color}`}>
         {meta.label}
@@ -158,7 +158,7 @@ function AuditLogModal({ log, onClose }) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col gap-5 p-6"
+        className="bg-bg-raised rounded-2xl shadow-xl w-full max-w-lg flex flex-col gap-5 p-6"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal header */}

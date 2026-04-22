@@ -8,10 +8,10 @@ function ItemCard({ item, onClick, pendingMatch }) {
   return (
     <div
       onClick={onClick}
-      className="flex flex-col sm:flex-row rounded-xl items-start gap-4 p-4  bg-white border border-gray-200 cursor-pointer hover:border-secondary-muted hover:shadow-lg transition-all duration-200 shadow-md"
+      className="flex flex-col sm:flex-row rounded-xl items-start gap-4 p-4  bg-bg-raised border border-border cursor-pointer hover:border-secondary-muted hover:shadow-lg transition-all duration-200 shadow-md"
     >
       {/* Thumbnail */}
-      <div className="shrink-0 w-full sm:w-16 h-40 sm:h-16 rounded-xl overflow-hidden border border-gray-200 bg-primary-soft flex items-center justify-center shadow-sm">
+      <div className="shrink-0 w-full sm:w-16 h-40 sm:h-16 rounded-xl overflow-hidden border border-border bg-primary-soft flex items-center justify-center shadow-sm">
         {signedUrls.length > 0 ? (
           <img
             src={signedUrls[0]}

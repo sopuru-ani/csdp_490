@@ -56,7 +56,7 @@ function Home() {
       </div>
 
       {/* Navigation Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
+      <header className="sticky top-0 z-50 bg-bg-raised/80 backdrop-blur-md border-b border-border">
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
@@ -148,7 +148,7 @@ function Home() {
                 size="lg"
                 variant="outline"
                 onClick={() => navigate("/login")}
-                className="border-slate-300 text-slate-700 hover:bg-slate-50 text-base font-semibold"
+                className="border-border text-text hover:bg-bg-sunken text-base font-semibold"
               >
                 Sign In
               </Button>
@@ -168,7 +168,7 @@ function Home() {
             <div className="absolute inset-0 bg-linear-to-r from-blue-400 to-blue-600 rounded-2xl opacity-20 blur-3xl" />
             <div className="relative bg-linear-to-br from-blue-50 to-white rounded-2xl p-8 border border-blue-100 shadow-2xl">
               <div className="space-y-4">
-                <div className="bg-white rounded-lg p-4 border border-slate-200 flex items-center gap-3 shadow-sm">
+                <div className="bg-bg-raised rounded-lg p-4 border border-border flex items-center gap-3 shadow-sm">
                   <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                     <MapPin className="w-5 h-5 text-blue-600" />
                   </div>
@@ -179,7 +179,7 @@ function Home() {
                     <p className="text-xs text-slate-500">Campus Library</p>
                   </div>
                 </div>
-                <div className="bg-white rounded-lg p-4 border border-slate-200 flex items-center gap-3 shadow-sm">
+                <div className="bg-bg-raised rounded-lg p-4 border border-border flex items-center gap-3 shadow-sm">
                   <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
                     <Clock className="w-5 h-5 text-amber-600" />
                   </div>
@@ -190,7 +190,7 @@ function Home() {
                     <p className="text-xs text-slate-500">2 hours ago</p>
                   </div>
                 </div>
-                <div className="bg-white rounded-lg p-4 border border-slate-200 flex items-center gap-3 shadow-sm">
+                <div className="bg-bg-raised rounded-lg p-4 border border-border flex items-center gap-3 shadow-sm">
                   <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                     <CheckCircle className="w-5 h-5 text-green-600" />
                   </div>
@@ -212,7 +212,7 @@ function Home() {
       {/* Features Section */}
       <section
         id="features"
-        className="bg-white border-y border-slate-200 py-20 md:py-28"
+        className="bg-bg-raised border-y border-border py-20 md:py-28"
       >
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -265,7 +265,7 @@ function Home() {
             ].map((feature, idx) => (
               <div
                 key={idx}
-                className="group p-8 rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 bg-linear-to-br from-slate-50 to-white hover:from-blue-50 hover:to-white"
+                className="group p-8 rounded-xl border border-border hover:border-primary hover:shadow-lg transition-all duration-300 bg-bg-raised hover:bg-primary-soft"
               >
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-200 transition">
                   <feature.icon className="w-6 h-6 text-blue-600" />
@@ -401,7 +401,7 @@ function Home() {
               size="lg"
               variant="outline"
               onClick={() => navigate("/login")}
-              className="border-slate-400 text-slate-900 bg-white hover:bg-slate-50 text-base font-semibold"
+              className="border-border text-text bg-bg-raised hover:bg-bg-sunken text-base font-semibold"
             >
               Sign In Instead
             </Button>

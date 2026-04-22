@@ -127,7 +127,7 @@ function ReportCard({ report, onReview }) {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
+    <div className="bg-bg-raised rounded-xl border border-border p-4 flex flex-col gap-3">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex flex-col gap-0.5">
@@ -182,13 +182,13 @@ function ReportCard({ report, onReview }) {
       )}
 
       {/* Actions */}
-      <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+      <div className="flex items-center justify-between pt-1 border-t border-border">
         <p className="text-xs font-semibold text-warning">Action required</p>
         <div className="flex gap-2">
           <button
             onClick={() => handle("dismissed")}
             disabled={!!deciding}
-            className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-primary-muted cursor-pointer disabled:opacity-60 transition-colors"
+            className="text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-primary-muted cursor-pointer disabled:opacity-60 transition-colors"
           >
             {deciding === "dismissed" ? "Dismissing..." : "Dismiss"}
           </button>

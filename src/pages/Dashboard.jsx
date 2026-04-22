@@ -169,7 +169,7 @@ function Dashboard() {
               Admin View
               {pendingCount > 0 && (
                 <span
-                  className={`text-xs bg-warning text-white font-bold w-5 h-5 flex items-center justify-center rounded-full ${tab === "admin" ? "text-secondary! bg-white" : ""}`}
+                  className={`text-xs bg-warning text-white font-bold w-5 h-5 flex items-center justify-center rounded-full ${tab === "admin" ? "text-secondary! bg-bg-raised" : ""}`}
                 >
                   {pendingCount}
                 </span>
@@ -304,7 +304,7 @@ function Dashboard() {
               </button>
               <button
                 onClick={() => navigate("/admin/audit-logs")}
-                className="flex-1 px-4 py-3 rounded-xl border border-gray-300 hover:bg-primary-muted text-sm font-semibold cursor-pointer transition-all duration-200"
+                className="flex-1 px-4 py-3 rounded-xl border border-border hover:bg-primary-muted text-sm font-semibold cursor-pointer transition-all duration-200"
               >
                 Audit Logs
               </button>
@@ -392,7 +392,7 @@ function StatCard({ label, value, sub, color, onClick, clickable }) {
   return (
     <div
       onClick={onClick}
-      className={`${color} rounded-2xl p-4 flex flex-col gap-1 border border-gray-200 shadow-md transition-all duration-200 ${
+      className={`${color} rounded-2xl p-4 flex flex-col gap-1 border border-border shadow-md transition-all duration-200 ${
         clickable ? "cursor-pointer hover:shadow-lg hover:-translate-y-0.5" : ""
       }`}
     >

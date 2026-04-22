@@ -184,7 +184,7 @@ function ItemDetailModal({
   }
 
   const inputClass =
-    "outline-none px-3 py-2.5 rounded-xl bg-white focus:bg-secondary-soft border border-gray-300 focus:ring-2 ring-secondary-muted text-sm w-full transition-all duration-200";
+    "outline-none px-3 py-2.5 rounded-xl bg-bg-raised focus:bg-secondary-soft border border-border-strong focus:ring-2 ring-secondary-muted text-sm w-full transition-all duration-200";
 
   return (
     // Backdrop
@@ -194,7 +194,7 @@ function ItemDetailModal({
     >
       {/* Modal — stop clicks from closing when clicking inside */}
       <div
-        className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto flex flex-col gap-5 p-4 sm:p-6 relative shadow-lg"
+        className="bg-bg-raised rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto flex flex-col gap-5 p-4 sm:p-6 relative shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -245,7 +245,7 @@ function ItemDetailModal({
                 key={i}
                 src={url}
                 alt={`Photo ${i + 1}`}
-                className="w-full h-28 object-cover rounded-xl border border-gray-200"
+                className="w-full h-28 object-cover rounded-xl border border-border"
               />
             ))}
           </div>
@@ -347,7 +347,7 @@ function ItemDetailModal({
         )}
 
         {!isOwner && (
-          <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+          <div className="flex items-center gap-2 pt-2 border-t border-border">
             <p className="text-xs text-text-muted flex-1">
               Something wrong with this report?
             </p>
@@ -397,7 +397,7 @@ function ItemDetailModal({
                     setEditing(false);
                     setError("");
                   }}
-                  className="flex-1 px-4 py-2 rounded-xl border border-gray-300 hover:bg-primary-muted text-sm cursor-pointer transition-all duration-200"
+                  className="flex-1 px-4 py-2 rounded-xl border border-border hover:bg-primary-muted text-sm cursor-pointer transition-all duration-200"
                 >
                   Cancel
                 </button>
@@ -415,7 +415,7 @@ function ItemDetailModal({
 
         {/* Match Results */}
         {matches !== null && (
-          <div className="flex flex-col gap-3 border-t border-gray-100 pt-4">
+          <div className="flex flex-col gap-3 border-t border-border pt-4">
             <p className="font-semibold text-sm">
               {matches.length > 0
                 ? `${matches.length} potential match${matches.length > 1 ? "es" : ""} found`
@@ -425,7 +425,7 @@ function ItemDetailModal({
             {matches.map((match, i) => (
               <div
                 key={i}
-                className="flex flex-col gap-2 p-4 rounded-2xl border border-gray-200 bg-primary-soft shadow-sm"
+                className="flex flex-col gap-2 p-4 rounded-2xl border border-border bg-primary-soft shadow-sm"
               >
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-sm">

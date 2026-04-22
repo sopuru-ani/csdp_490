@@ -339,7 +339,7 @@ function Settings() {
           </button>
         </div>
 
-        <div className="border-t border-gray-100 pt-4 flex flex-col gap-4">
+        <div className="border-t border-border pt-4 flex flex-col gap-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field
               label="Current Password"
@@ -367,7 +367,7 @@ function Settings() {
               </button>
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 rounded-xl border border-gray-300 hover:bg-danger-soft hover:border-danger hover:text-danger text-sm cursor-pointer transition-all duration-200"
+                className="px-4 py-2 rounded-xl border border-border hover:bg-danger-soft hover:border-danger hover:text-danger text-sm cursor-pointer transition-all duration-200"
               >
                 Log out
               </button>
@@ -499,7 +499,7 @@ function Settings() {
 
 function SettingsSection({ title, description, icon, status, children }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col gap-4 shadow-md">
+    <div className="bg-bg-raised rounded-2xl border border-border p-5 flex flex-col gap-4 shadow-md">
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-xl bg-primary-soft flex items-center justify-center text-secondary">
           {icon}
@@ -524,7 +524,7 @@ function Field({ label, type = "text", value, onChange, placeholder }) {
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="outline-none px-4 py-2.5 rounded-xl bg-white focus:bg-secondary-soft border border-gray-300 focus:ring-2 ring-secondary-muted text-sm transition-all duration-200"
+        className="outline-none px-4 py-2.5 rounded-xl bg-bg-raised focus:bg-secondary-soft border border-border-strong focus:ring-2 ring-secondary-muted text-sm transition-all duration-200"
       />
     </label>
   );
@@ -543,7 +543,7 @@ function ToggleRow({ label, description, checked, onChange, disabled }) {
         onClick={() => onChange(!checked)}
         disabled={disabled}
         className={`w-12 h-6 rounded-full p-0.5 transition-colors ${
-          checked ? "bg-secondary" : "bg-gray-200"
+          checked ? "bg-secondary" : "bg-border-strong"
         } ${disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
         aria-pressed={checked}
         aria-label={label}
