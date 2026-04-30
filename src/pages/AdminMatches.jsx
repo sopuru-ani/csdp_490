@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "@/components/sidebar";
 import { apiFetch } from "@/lib/api";
 
-import { CheckSquareIcon } from "lucide-react";
+import { CheckSquareIcon, ArrowLeftIcon } from "lucide-react";
 
 function AdminMatches() {
   const navigate = useNavigate();
@@ -94,7 +94,15 @@ function AdminMatches() {
       <div className="p-3 sm:p-4 md:p-6 flex-1 flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-bold text-2xl">Match Review</p>
+            <div className="flex flex-row gap-2 items-center">
+              <button
+                className="cursor-pointer rounded-full hover:bg-primary-muted p-2"
+                onClick={() => navigate(-1)}
+              >
+                <ArrowLeftIcon className="w-5 h-5" />
+              </button>
+              <p className="font-bold text-2xl">Match Review</p>
+            </div>
             <p className="text-sm text-text-muted">
               Approve or reject student match requests
             </p>
