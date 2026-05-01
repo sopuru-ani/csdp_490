@@ -1,7 +1,10 @@
-import { useState } from "react";
-import { X, Trash2, Search } from "lucide-react";
+import { useState, useRef } from "react";
+import { X, Trash2, Search, ImagePlus } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import ReportButton from "@/components/AbuseReportButton";
+
+const MAX_IMAGES = 5;
+const MAX_FILE_BYTES = 7 * 1024 * 1024;
 
 function ItemDetailModal({
   item,
@@ -13,19 +16,30 @@ function ItemDetailModal({
 }) {
   const isLost = item.item_type === "lost";
   const isOwner = item.user_id === currentUserId;
-  const signedUrls = (item.signed_urls || []).filter(Boolean);
 
-  // Local state for edit mode, form, and feedback messages
+  // Zip image_paths + signed_urls so we can track which path goes with which URL.
+  // Kept in state so the modal can update its view immediately after a save
+  // without waiting for the parent to refetch.
+  const [existingImages, setExistingImages] = useState(() => {
+    const paths = item.image_paths || [];
+    const urls  = item.signed_urls  || [];
+    return paths
+      .map((path, i) => ({ path, url: urls[i] || null }))
+      .filter((img) => img.url);
+  });
+
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // For showing API error/success messages after trying to save edits
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
-  //
   const [matches, setMatches] = useState(null);
   const [matchesLoading, setMatchesLoading] = useState(false);
+
+  // Image editing state
+  const [removedPaths, setRemovedPaths] = useState([]);
+  const [newFiles, setNewFiles] = useState([]);
+  const [newPreviews, setNewPreviews] = useState([]);
+  const fileInputRef = useRef(null);
 
   const [form, setForm] = useState({
     item_name: item.item_name || "",
@@ -39,28 +53,94 @@ function ItemDetailModal({
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const visibleExisting = existingImages.filter(
+    (img) => !removedPaths.includes(img.path),
+  );
+  const totalImageCount = visibleExisting.length + newFiles.length;
+
+  const handleAddFiles = (e) => {
+    const files = Array.from(e.target.files || []);
+    const remaining = MAX_IMAGES - totalImageCount;
+    const toAdd = files.slice(0, remaining);
+    const oversized = toAdd.filter((f) => f.size > MAX_FILE_BYTES);
+    if (oversized.length > 0) {
+      setError("Each image must be under 7 MB.");
+      e.target.value = "";
+      return;
+    }
+    setNewFiles((prev) => [...prev, ...toAdd]);
+    setNewPreviews((prev) => [
+      ...prev,
+      ...toAdd.map((f) => URL.createObjectURL(f)),
+    ]);
+    e.target.value = "";
+  };
+
+  const handleRemoveExisting = (path) =>
+    setRemovedPaths((prev) => [...prev, path]);
+
+  const handleRemoveNew = (index) => {
+    URL.revokeObjectURL(newPreviews[index]);
+    setNewFiles((prev) => prev.filter((_, i) => i !== index));
+    setNewPreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const resetImageState = () => {
+    newPreviews.forEach((u) => URL.revokeObjectURL(u));
+    setRemovedPaths([]);
+    setNewFiles([]);
+    setNewPreviews([]);
+  };
+
   const handleSave = async () => {
     setLoading(true);
     setError("");
     setSuccess("");
 
     try {
+      let addPaths = [];
+
+      if (newFiles.length > 0) {
+        const formData = new FormData();
+        newFiles.forEach((f) => formData.append("files", f));
+        const uploadRes = await apiFetch("/items/upload", {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok)
+          throw new Error(uploadData.detail || "Image upload failed");
+        addPaths = uploadData.paths;
+      }
+
       const res = await apiFetch(`/items/${item.id}`, {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          add_image_paths: addPaths,
+          remove_image_paths: removedPaths,
+        }),
       });
 
       const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Update failed");
 
-      if (!res.ok) {
-        throw new Error(data.detail || "Update failed");
-      }
+      // Refresh the image strip from the fresh signed URLs in the response
+      const freshPaths = data.item?.image_paths || [];
+      const freshUrls  = data.item?.signed_urls  || [];
+      setExistingImages(
+        freshPaths
+          .map((path, i) => ({ path, url: freshUrls[i] || null }))
+          .filter((img) => img.url),
+      );
 
+      resetImageState();
       setSuccess("Item updated successfully.");
       setEditing(false);
-      onUpdated(); // tell dashboard to refetch
+      onUpdated(data.item);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -68,7 +148,6 @@ function ItemDetailModal({
     }
   };
 
-  // This function calls the backend to delete the item, then calls onDeleted to tell the parent to refetch and close the modal.
   const handleDelete = async () => {
     if (
       !window.confirm(
@@ -96,7 +175,6 @@ function ItemDetailModal({
     }
   };
 
-  // This function calls the backend to find potential matches for this item, then displays them in the modal.
   const handleFindMatches = async () => {
     setMatchesLoading(true);
     setMatches(null);
@@ -108,7 +186,6 @@ function ItemDetailModal({
       });
 
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.detail || "Failed to find matches");
 
       setMatches(data.matches);
@@ -119,9 +196,8 @@ function ItemDetailModal({
     }
   };
 
-  // This component renders the "Request this match" button for each potential match, and handles the API call when clicked.
   function MatchRequestButton({ sourceItemId, matchedItemId, score, reason }) {
-    const [status, setStatus] = useState("idle"); // idle | loading | requested | error
+    const [status, setStatus] = useState("idle");
 
     const handleRequest = async () => {
       setStatus("loading");
@@ -140,7 +216,6 @@ function ItemDetailModal({
         const data = await res.json();
 
         if (!res.ok) {
-          // Already requested = treat as soft error, show requested state
           if (data.detail?.includes("already exists")) {
             setStatus("requested");
             return;
@@ -184,17 +259,15 @@ function ItemDetailModal({
   }
 
   const inputClass =
-    "outline-none px-3 py-2.5 rounded-xl bg-white focus:bg-secondary-soft border border-gray-300 focus:ring-2 ring-secondary-muted text-sm w-full transition-all duration-200";
+    "outline-none px-3 py-2.5 rounded-xl bg-bg-raised focus:bg-secondary-soft border border-border-strong focus:ring-2 ring-secondary-muted text-sm w-full transition-all duration-200";
 
   return (
-    // Backdrop
     <div
       className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
-      {/* Modal — stop clicks from closing when clicking inside */}
       <div
-        className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto flex flex-col gap-5 p-4 sm:p-6 relative shadow-lg"
+        className="bg-bg-raised rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto flex flex-col gap-5 p-4 sm:p-6 relative shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -237,17 +310,87 @@ function ItemDetailModal({
           </div>
         )}
 
-        {/* Images */}
-        {signedUrls.length > 0 && (
+        {/* Images — static in view mode, editable in edit mode */}
+        {!editing && existingImages.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {signedUrls.map((url, i) => (
+            {existingImages.map((img, i) => (
               <img
                 key={i}
-                src={url}
+                src={img.url}
                 alt={`Photo ${i + 1}`}
-                className="w-full h-28 object-cover rounded-xl border border-gray-200"
+                className="w-full h-28 object-cover rounded-xl border border-border"
               />
             ))}
+          </div>
+        )}
+
+        {editing && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-text-muted">
+                Photos
+              </label>
+              <span className="text-xs text-text-muted">
+                {totalImageCount}/{MAX_IMAGES}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {/* Existing images not yet removed */}
+              {visibleExisting.map((img, i) => (
+                <div key={img.path} className="relative group">
+                  <img
+                    src={img.url}
+                    alt={`Photo ${i + 1}`}
+                    className="w-full h-24 object-cover rounded-xl border border-border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveExisting(img.path)}
+                    className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full p-0.5 cursor-pointer transition-all duration-150"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+
+              {/* New file previews */}
+              {newPreviews.map((url, i) => (
+                <div key={url} className="relative group">
+                  <img
+                    src={url}
+                    alt={`New photo ${i + 1}`}
+                    className="w-full h-24 object-cover rounded-xl border border-secondary/50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveNew(i)}
+                    className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full p-0.5 cursor-pointer transition-all duration-150"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+
+              {/* Add photos button */}
+              {totalImageCount < MAX_IMAGES && (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-24 flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border hover:border-secondary hover:bg-secondary-soft text-text-muted hover:text-secondary cursor-pointer transition-all duration-200"
+                >
+                  <ImagePlus className="w-5 h-5" />
+                  <span className="text-xs">Add</span>
+                </button>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleAddFiles}
+            />
           </div>
         )}
 
@@ -347,7 +490,7 @@ function ItemDetailModal({
         )}
 
         {!isOwner && (
-          <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+          <div className="flex items-center gap-2 pt-2 border-t border-border">
             <p className="text-xs text-text-muted flex-1">
               Something wrong with this report?
             </p>
@@ -364,7 +507,6 @@ function ItemDetailModal({
           <div className="flex gap-2 pt-2">
             {!editing ? (
               <>
-                {/* Only allow delete on open items */}
                 {item.status !== "closed" && (
                   <button
                     onClick={handleDelete}
@@ -396,8 +538,9 @@ function ItemDetailModal({
                   onClick={() => {
                     setEditing(false);
                     setError("");
+                    resetImageState();
                   }}
-                  className="flex-1 px-4 py-2 rounded-xl border border-gray-300 hover:bg-primary-muted text-sm cursor-pointer transition-all duration-200"
+                  className="flex-1 px-4 py-2 rounded-xl border border-border hover:bg-primary-muted text-sm cursor-pointer transition-all duration-200"
                 >
                   Cancel
                 </button>
@@ -415,7 +558,7 @@ function ItemDetailModal({
 
         {/* Match Results */}
         {matches !== null && (
-          <div className="flex flex-col gap-3 border-t border-gray-100 pt-4">
+          <div className="flex flex-col gap-3 border-t border-border pt-4">
             <p className="font-semibold text-sm">
               {matches.length > 0
                 ? `${matches.length} potential match${matches.length > 1 ? "es" : ""} found`
@@ -425,7 +568,7 @@ function ItemDetailModal({
             {matches.map((match, i) => (
               <div
                 key={i}
-                className="flex flex-col gap-2 p-4 rounded-2xl border border-gray-200 bg-primary-soft shadow-sm"
+                className="flex flex-col gap-2 p-4 rounded-2xl border border-border bg-primary-soft shadow-sm"
               >
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-sm">
@@ -448,7 +591,6 @@ function ItemDetailModal({
                 </p>
                 <p className="text-xs text-text-muted italic">{match.reason}</p>
 
-                {/* Request Match button */}
                 <MatchRequestButton
                   sourceItemId={item.id}
                   matchedItemId={match.item.id}

@@ -61,6 +61,8 @@ class ItemUpdate(BaseModel):
     date_lost_from: Optional[str] = None
     date_lost_to: Optional[str] = None
     date_found: Optional[str] = None
+    add_image_paths: List[str] = []
+    remove_image_paths: List[str] = []
 
 
 # ── Helper ────────────────────────────────────────────────────────────────────
@@ -219,7 +221,26 @@ def update_item(
         if not existing.data:
             raise HTTPException(status_code=404, detail="Item not found or not yours")
 
-        updates = {k: v for k, v in item.dict().items() if v is not None}
+        _SCALAR = {"item_name", "description", "location", "category", "date_lost_from", "date_lost_to", "date_found"}
+        updates = {k: v for k, v in item.dict().items() if k in _SCALAR and v is not None}
+
+        if item.add_image_paths or item.remove_image_paths:
+            current_paths = existing.data.get("image_paths") or []
+            remove_set = set(item.remove_image_paths)
+
+            # Only allow removing paths that actually belong to this item
+            invalid = remove_set - set(current_paths)
+            if invalid:
+                raise HTTPException(status_code=400, detail="Cannot remove images not belonging to this item")
+
+            if item.remove_image_paths:
+                try:
+                    db_supabase.storage.from_("item-images").remove(item.remove_image_paths)
+                except Exception as e:
+                    print("STORAGE DELETE ERROR:", repr(e))
+
+            updates["image_paths"] = [p for p in current_paths if p not in remove_set] + item.add_image_paths
+
         if not updates:
             raise HTTPException(status_code=400, detail="No fields to update")
 
@@ -228,7 +249,9 @@ def update_item(
             .eq("id", item_id) \
             .execute()
 
-        return {"message": "Item updated successfully", "item": response.data[0]}
+        updated_item = response.data[0]
+        _attach_signed_urls([updated_item])
+        return {"message": "Item updated successfully", "item": updated_item}
 
     except HTTPException:
         raise

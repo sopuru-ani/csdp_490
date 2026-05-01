@@ -210,7 +210,7 @@ function AuditLogModal({ log, onClose }) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col gap-5 p-6"
+        className="bg-bg-raised rounded-2xl shadow-xl w-full max-w-lg flex flex-col gap-5 p-6"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal header */}

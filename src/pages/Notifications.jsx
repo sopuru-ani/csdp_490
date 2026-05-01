@@ -13,14 +13,14 @@ import {
 
 // Map notification tag prefixes → icon + colour
 const TAG_META = {
-  "lostlink-msg":              { icon: MessageCircle, color: "text-blue-500",   bg: "bg-blue-50"   },
-  "lostlink-match-approved":   { icon: Handshake,     color: "text-green-500",  bg: "bg-green-50"  },
-  "lostlink-match-rejected":   { icon: Handshake,     color: "text-red-500",    bg: "bg-red-50"    },
-  "lostlink-match-request":    { icon: Handshake,     color: "text-yellow-500", bg: "bg-yellow-50" },
-  "lostlink-ai-matches":       { icon: PackageCheck,  color: "text-purple-500", bg: "bg-purple-50" },
-  "lostlink-item-closed":      { icon: PackageCheck,  color: "text-gray-500",   bg: "bg-gray-100"  },
-  "lostlink-password-changed": { icon: ShieldCheck,   color: "text-orange-500", bg: "bg-orange-50" },
-  "lostlink-admin":            { icon: ShieldCheck,   color: "text-red-500",    bg: "bg-red-50"    },
+  "lostlink-msg":              { icon: MessageCircle, color: "text-info",       bg: "bg-info-soft"    },
+  "lostlink-match-approved":   { icon: Handshake,     color: "text-success",    bg: "bg-success-soft" },
+  "lostlink-match-rejected":   { icon: Handshake,     color: "text-danger",     bg: "bg-danger-soft"  },
+  "lostlink-match-request":    { icon: Handshake,     color: "text-warning",    bg: "bg-warning-soft" },
+  "lostlink-ai-matches":       { icon: PackageCheck,  color: "text-secondary",  bg: "bg-secondary-soft" },
+  "lostlink-item-closed":      { icon: PackageCheck,  color: "text-text-muted", bg: "bg-bg-sunken"    },
+  "lostlink-password-changed": { icon: ShieldCheck,   color: "text-warning",    bg: "bg-warning-soft" },
+  "lostlink-admin":            { icon: ShieldCheck,   color: "text-danger",     bg: "bg-danger-soft"  },
 };
 
 function getTagMeta(tag = "") {
@@ -120,12 +120,12 @@ function Notifications() {
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 capitalize ${
               filter === tab
                 ? "bg-secondary text-white shadow-sm"
-                : "bg-white border border-gray-200 text-text-muted hover:border-secondary hover:text-secondary"
+                : "bg-bg-raised border border-border text-text-muted hover:border-secondary hover:text-secondary"
             }`}
           >
             {tab}
             {tab === "unread" && unreadCount > 0 && (
-              <span className="ml-1.5 bg-white text-secondary rounded-full px-1.5 py-0.5 text-xs font-bold">
+              <span className="ml-1.5 bg-bg-raised text-secondary rounded-full px-1.5 py-0.5 text-xs font-bold">
                 {unreadCount}
               </span>
             )}
@@ -159,7 +159,7 @@ function NotificationCard({ notification, onClick }) {
       onClick={onClick}
       className={`w-full text-left flex items-start gap-4 p-4 rounded-2xl border transition-all duration-200 hover:shadow-md cursor-pointer ${
         notification.read
-          ? "bg-white border-gray-200"
+          ? "bg-bg-raised border-border"
           : "bg-secondary-soft border-secondary/20"
       }`}
     >
@@ -186,7 +186,7 @@ function NotificationCard({ notification, onClick }) {
 
 function EmptyState({ filter }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-md p-12 flex flex-col items-center gap-4 text-center">
+    <div className="bg-bg-raised rounded-2xl border border-border shadow-md p-12 flex flex-col items-center gap-4 text-center">
       <div className="w-16 h-16 rounded-2xl bg-primary-soft flex items-center justify-center">
         <Inbox className="w-8 h-8 text-secondary" />
       </div>

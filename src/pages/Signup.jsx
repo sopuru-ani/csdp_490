@@ -172,7 +172,7 @@ function Signup() {
                   id="email"
                   placeholder="Enter your email"
                   value={email}
-                  className="outline-none px-4 py-3 rounded-lg bg-white focus:bg-secondary-soft border border-gray-300 ring-gray-300 focus:ring-1 text-sm"
+                  className="outline-none px-4 py-3 rounded-lg bg-bg-raised focus:bg-secondary-soft border border-border-strong ring-border-strong focus:ring-1 text-sm"
                   onChange={(e) => {
                     setEmail(e.target.value);
                   }}
@@ -234,7 +234,7 @@ function Signup() {
                     placeholder="John"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="outline-none px-3 py-3 rounded-lg bg-white focus:bg-secondary-soft border border-gray-300 ring-gray-300 focus:ring-1 text-sm"
+                    className="outline-none px-3 py-3 rounded-lg bg-bg-raised focus:bg-secondary-soft border border-border-strong ring-border-strong focus:ring-1 text-sm"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -247,7 +247,7 @@ function Signup() {
                     placeholder="Kaisen"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    className="outline-none px-3 py-3 rounded-lg bg-white focus:bg-secondary-soft border border-gray-300 ring-gray-300 focus:ring-1 text-sm"
+                    className="outline-none px-3 py-3 rounded-lg bg-bg-raised focus:bg-secondary-soft border border-border-strong ring-border-strong focus:ring-1 text-sm"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -263,7 +263,7 @@ function Signup() {
                       type="text"
                       id="email"
                       value={email}
-                      className="text-text-muted outline-none px-3 py-3 rounded-lg bg-white focus:bg-secondary-soft border border-gray-300 ring-gray-300 focus:ring-1 text-sm w-full"
+                      className="text-text-muted outline-none px-3 py-3 rounded-lg bg-bg-raised focus:bg-secondary-soft border border-border-strong ring-border-strong focus:ring-1 text-sm w-full"
                       disabled
                     />
                   </div>
@@ -286,16 +286,16 @@ function Signup() {
                             setHasStartedPasswordInput(true);
                           }
                         }}
-                        className="outline-none px-3 py-3 rounded-lg bg-white focus:bg-secondary-soft border border-gray-300 ring-gray-300 focus:ring-1 text-sm w-full pr-10"
+                        className="outline-none px-3 py-3 rounded-lg bg-bg-raised focus:bg-secondary-soft border border-border-strong ring-border-strong focus:ring-1 text-sm w-full pr-10"
                       />
                       {hidePassword ? (
                         <EyeOff
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 cursor-pointer"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted w-5 h-5 cursor-pointer"
                           onClick={() => setHidePassword(!hidePassword)}
                         />
                       ) : (
                         <Eye
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 cursor-pointer"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted w-5 h-5 cursor-pointer"
                           onClick={() => setHidePassword(!hidePassword)}
                         />
                       )}
@@ -375,18 +375,18 @@ function Signup() {
                       placeholder="Confirm password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="outline-none px-3 py-3 rounded-lg bg-white focus:bg-secondary-soft border border-gray-300 ring-gray-300 focus:ring-1 text-sm w-full pr-10"
+                      className="outline-none px-3 py-3 rounded-lg bg-bg-raised focus:bg-secondary-soft border border-border-strong ring-border-strong focus:ring-1 text-sm w-full pr-10"
                     />
                     {hideConfirmPassword ? (
                       <EyeOff
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 cursor-pointer"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted w-5 h-5 cursor-pointer"
                         onClick={() =>
                           setHideConfirmPassword(!hideConfirmPassword)
                         }
                       />
                     ) : (
                       <Eye
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 cursor-pointer"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted w-5 h-5 cursor-pointer"
                         onClick={() =>
                           setHideConfirmPassword(!hideConfirmPassword)
                         }

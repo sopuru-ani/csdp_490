@@ -9,7 +9,7 @@ function ReportCard({ item, onClick }) {
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col gap-4 cursor-pointer hover:border-secondary-muted hover:shadow-lg transition-all duration-200 shadow-md"
+      className="bg-bg-raised rounded-2xl border border-border p-5 flex flex-col gap-4 cursor-pointer hover:border-secondary-muted hover:shadow-lg transition-all duration-200 shadow-md"
     >
       {/* Top row */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
@@ -51,7 +51,7 @@ function ReportCard({ item, onClick }) {
       </div>
 
       {/* Bottom row — images + submitted date */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-gray-100">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-border">
         <div className="flex flex-wrap items-center gap-3">
           {signedUrls.length > 0 ? (
             <div className="flex items-center gap-1.5">
@@ -61,7 +61,7 @@ function ReportCard({ item, onClick }) {
                     key={i}
                     src={url}
                     alt=""
-                    className="w-7 h-7 rounded-full object-cover border-2 border-white"
+                    className="w-7 h-7 rounded-full object-cover border-2 border-bg-raised"
                   />
                 ))}
               </div>

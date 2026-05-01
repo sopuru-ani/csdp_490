@@ -144,7 +144,11 @@ function MyReports() {
           currentUserId={user?.id}
           isAdmin={user?.is_admin}
           onClose={() => setSelectedItem(null)}
-          onUpdated={() => {
+          onUpdated={(updatedItem) => {
+            // Immediately patch the item so the next open is fresh
+            if (updatedItem) {
+              setItems((prev) => prev.map((i) => i.id === updatedItem.id ? updatedItem : i));
+            }
             setSelectedItem(null);
             fetchItems();
           }}

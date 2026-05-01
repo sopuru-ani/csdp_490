@@ -131,50 +131,51 @@
 }
 
 /* ============================================================
-   DARK MODE (Revamped)
-   Pleasant, balanced colors - not too bright, not too dim
+   DARK MODE
+   Deep navy-slate base · Blue + Amber accents
+   Layered backgrounds · Bright readable text
    ============================================================ */
 
 .dark {
   /* --- Primary (Blue) --- */
-  --color-primary: #5eb3f6;
-  --color-primary-soft: #162d47;
-  --color-primary-hover: #7ec7ff;
-  --color-primary-muted: #1d4ed850;
+  --color-primary: #60a5fa;
+  --color-primary-soft: #172038;
+  --color-primary-hover: #93c5fd;
+  --color-primary-muted: #1e3a5f70;
 
   /* --- Secondary (Amber) --- */
-  --color-secondary: #f4c775;
-  --color-secondary-soft: #3d2515;
-  --color-secondary-hover: #f8d996;
-  --color-secondary-muted: #92400e50;
+  --color-secondary: #fbbf24;
+  --color-secondary-soft: #2d1a08;
+  --color-secondary-hover: #fcd34d;
+  --color-secondary-muted: #78350f60;
 
-  /* --- Backgrounds --- */
-  --color-bg: #0f1622;
-  --color-bg-raised: #151d2d;
-  --color-bg-sunken: #0a1018;
-  --color-bg-overlay: #151d2ddd;
+  /* --- Backgrounds (clearly layered) --- */
+  --color-bg: #111827;
+  --color-bg-raised: #1c2638;
+  --color-bg-sunken: #0d1520;
+  --color-bg-overlay: #1c2638ee;
 
   /* --- Borders --- */
-  --color-border: #1f3451;
-  --color-border-strong: #3d5a82;
-  --color-border-focus: #5eb3f6;
+  --color-border: #243550;
+  --color-border-strong: #3b5480;
+  --color-border-focus: #60a5fa;
 
-  /* --- Text (Improved brightness) --- */
-  --color-text: #e5ecf5;
-  --color-text-secondary: #b4c5db;
-  --color-text-muted: #7a8fa5;
-  --color-text-inverse: #0f172a;
-  --color-text-link: #5eb3f6;
+  /* --- Text (bright for readability) --- */
+  --color-text: #f1f5fb;
+  --color-text-secondary: #c8d8ee;
+  --color-text-muted: #8ba4c0;
+  --color-text-inverse: #0d1520;
+  --color-text-link: #60a5fa;
 
   /* --- Feedback --- */
-  --color-success: #5fdd9d;
-  --color-success-soft: #0f3d28;
-  --color-warning: #f4c775;
-  --color-warning-soft: #3d2515;
-  --color-danger: #f97e7e;
-  --color-danger-soft: #4a1515;
-  --color-info: #5eb3f6;
-  --color-info-soft: #162d47;
+  --color-success: #4ade80;
+  --color-success-soft: #052e16;
+  --color-warning: #fbbf24;
+  --color-warning-soft: #2d1a08;
+  --color-danger: #f87171;
+  --color-danger-soft: #3d0c0c;
+  --color-info: #60a5fa;
+  --color-info-soft: #172038;
 
   /* ========================================================
      SHADCN TOKEN BRIDGE (dark)

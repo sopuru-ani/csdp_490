@@ -137,7 +137,7 @@ function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={!!lockedUntil}
-                className="outline-none px-3 py-3 rounded-lg bg-white focus:bg-secondary-soft border border-gray-300 ring-gray-300 focus:ring-1 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="outline-none px-3 py-3 rounded-lg bg-bg-raised focus:bg-secondary-soft border border-border-strong ring-border-strong focus:ring-1 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -159,7 +159,7 @@ function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={!!lockedUntil}
-                className="outline-none px-3 py-3 rounded-lg bg-white focus:bg-secondary-soft border border-gray-300 ring-gray-300 focus:ring-1 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="outline-none px-3 py-3 rounded-lg bg-bg-raised focus:bg-secondary-soft border border-border-strong ring-border-strong focus:ring-1 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
           </div>
