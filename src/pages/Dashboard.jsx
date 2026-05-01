@@ -371,7 +371,12 @@ function Dashboard() {
           currentUserId={user.id}
           isAdmin={user.is_admin}
           onClose={() => setSelectedItem(null)}
-          onUpdated={() => {
+          onUpdated={(updatedItem) => {
+            // Immediately patch the item in both lists so the next open is fresh
+            if (updatedItem) {
+              setItems((prev) => prev.map((i) => i.id === updatedItem.id ? updatedItem : i));
+              setAllItems((prev) => prev.map((i) => i.id === updatedItem.id ? updatedItem : i));
+            }
             setSelectedItem(null);
             fetchMyItems();
             if (user.is_admin) fetchAllItems();

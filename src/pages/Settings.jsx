@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, ShieldCheck, Palette, User, Trash2 } from "lucide-react";
+import { Bell, Mail, ShieldCheck, Palette, User, Trash2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
@@ -54,10 +54,12 @@ function Settings() {
 
   const [notifyPrefs, setNotifyPrefs] = useState({
     push: false,
-    email: false,
     matchAlerts: true,
     messageNotifications: true,
   });
+
+  const [emailPrefs, setEmailPrefs] = useState(null); // null = not yet loaded
+  const [emailPrefsStatus, setEmailPrefsStatus] = useState({ type: "", message: "" });
 
   const [darkMode, setDarkMode] = useState(false);
 
@@ -80,6 +82,14 @@ function Settings() {
           `${data.first_name || ""} ${data.last_name || ""}`.trim(),
         );
         setProfileEmail(data.email || "");
+
+        // Load email preferences (non-blocking — page still shows if this fails)
+        try {
+          const epRes = await apiFetch("/settings/email-preferences");
+          if (epRes.ok) setEmailPrefs(await epRes.json());
+        } catch {
+          // leave emailPrefs as null; section will show a loading state
+        }
       } catch {
         navigate("/login");
         return;
@@ -198,6 +208,26 @@ function Settings() {
         type: "error",
         message: err.message || "Failed to save notification preferences.",
       });
+    }
+  }
+
+  async function handleEmailPrefToggle(key, value) {
+    setEmailPrefs((prev) => ({ ...prev, [key]: value }));
+    setEmailPrefsStatus({ type: "", message: "" });
+    try {
+      const res = await apiFetch("/settings/email-preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [key]: value }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      setEmailPrefsStatus({ type: "success", message: "Saved." });
+      // Auto-clear the success badge after 2 s
+      setTimeout(() => setEmailPrefsStatus({ type: "", message: "" }), 2000);
+    } catch {
+      // Revert optimistic update
+      setEmailPrefs((prev) => ({ ...prev, [key]: !value }));
+      setEmailPrefsStatus({ type: "error", message: "Failed to save preference." });
     }
   }
 
@@ -394,14 +424,6 @@ function Settings() {
           disabled={pushLoading || !user?.id || notificationDenied}
         />
         <ToggleRow
-          label="Enable Email Notifications"
-          description="Get important updates in your inbox."
-          checked={notifyPrefs.email}
-          onChange={(value) =>
-            setNotifyPrefs((prev) => ({ ...prev, email: value }))
-          }
-        />
-        <ToggleRow
           label="Match Alerts"
           description="Alerts when an item is matched."
           checked={notifyPrefs.matchAlerts}
@@ -428,6 +450,60 @@ function Settings() {
             Save Notifications
           </button>
         </div>
+      </SettingsSection>
+
+      <SettingsSection
+        title="Email Notifications"
+        description="Choose which events send you an email."
+        icon={<Mail className="w-5 h-5" />}
+        status={emailPrefsStatus}
+      >
+        {emailPrefs === null ? (
+          <div className="flex items-center justify-center py-4">
+            <div className="border-secondary border-2 border-t-0 rounded-full w-5 h-5 animate-spin" />
+          </div>
+        ) : (
+          <>
+            <ToggleRow
+              label="New Messages"
+              description="Email me when I receive a new message."
+              checked={emailPrefs.new_message}
+              onChange={(v) => handleEmailPrefToggle("new_message", v)}
+            />
+            <ToggleRow
+              label="Match Approved"
+              description="Email me when my match request is approved."
+              checked={emailPrefs.match_approved}
+              onChange={(v) => handleEmailPrefToggle("match_approved", v)}
+            />
+            <ToggleRow
+              label="Match Rejected"
+              description="Email me when my match request is not approved."
+              checked={emailPrefs.match_rejected}
+              onChange={(v) => handleEmailPrefToggle("match_rejected", v)}
+            />
+            <ToggleRow
+              label="AI Match Found"
+              description="Email me when the AI finds potential matches for my item."
+              checked={emailPrefs.ai_match_found}
+              onChange={(v) => handleEmailPrefToggle("ai_match_found", v)}
+            />
+            <ToggleRow
+              label="Item Closed"
+              description="Email me when one of my items is marked as recovered."
+              checked={emailPrefs.item_closed}
+              onChange={(v) => handleEmailPrefToggle("item_closed", v)}
+            />
+            {user?.is_admin && (
+              <ToggleRow
+                label="New Item Report (Admin)"
+                description="Email me when a new lost or found item is submitted."
+                checked={emailPrefs.new_report}
+                onChange={(v) => handleEmailPrefToggle("new_report", v)}
+              />
+            )}
+          </>
+        )}
       </SettingsSection>
 
       <SettingsSection

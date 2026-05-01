@@ -17,13 +17,16 @@ function ItemDetailModal({
   const isLost = item.item_type === "lost";
   const isOwner = item.user_id === currentUserId;
 
-  // Zip image_paths + signed_urls so we can track which path goes with which URL
-  const imagePaths = item.image_paths || [];
-  const rawSignedUrls = item.signed_urls || [];
-  const existingImages = imagePaths.map((path, i) => ({
-    path,
-    url: rawSignedUrls[i] || null,
-  })).filter((img) => img.url);
+  // Zip image_paths + signed_urls so we can track which path goes with which URL.
+  // Kept in state so the modal can update its view immediately after a save
+  // without waiting for the parent to refetch.
+  const [existingImages, setExistingImages] = useState(() => {
+    const paths = item.image_paths || [];
+    const urls  = item.signed_urls  || [];
+    return paths
+      .map((path, i) => ({ path, url: urls[i] || null }))
+      .filter((img) => img.url);
+  });
 
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -125,10 +128,19 @@ function ItemDetailModal({
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Update failed");
 
+      // Refresh the image strip from the fresh signed URLs in the response
+      const freshPaths = data.item?.image_paths || [];
+      const freshUrls  = data.item?.signed_urls  || [];
+      setExistingImages(
+        freshPaths
+          .map((path, i) => ({ path, url: freshUrls[i] || null }))
+          .filter((img) => img.url),
+      );
+
       resetImageState();
       setSuccess("Item updated successfully.");
       setEditing(false);
-      onUpdated();
+      onUpdated(data.item);
     } catch (err) {
       setError(err.message);
     } finally {

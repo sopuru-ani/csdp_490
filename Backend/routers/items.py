@@ -249,7 +249,9 @@ def update_item(
             .eq("id", item_id) \
             .execute()
 
-        return {"message": "Item updated successfully", "item": response.data[0]}
+        updated_item = response.data[0]
+        _attach_signed_urls([updated_item])
+        return {"message": "Item updated successfully", "item": updated_item}
 
     except HTTPException:
         raise
