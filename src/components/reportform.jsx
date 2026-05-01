@@ -131,7 +131,7 @@ function ReportForm({ type = "lost" }) {
     try {
       // Step 1: Upload image if one was selected
       let imagePaths = [];
-      if (image.length > 0) {
+      if (images.length > 0) {
         const formData = new FormData();
         images.forEach((f) => formData.append("files", f));
 
