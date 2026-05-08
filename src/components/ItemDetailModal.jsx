@@ -1,7 +1,32 @@
 import { useState, useRef } from "react";
-import { X, Trash2, Search, ImagePlus } from "lucide-react";
+import { X, Trash2, Search, ImagePlus, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 import { apiFetch } from "@/lib/api";
 import ReportButton from "@/components/AbuseReportButton";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const CATEGORIES = [
+  "Bags",
+  "Electronics",
+  "Clothing",
+  "Keys",
+  "ID / Cards",
+  "Books",
+  "Jewelry",
+  "Other",
+];
 
 const MAX_IMAGES = 5;
 const MAX_FILE_BYTES = 7 * 1024 * 1024;
@@ -41,12 +66,36 @@ function ItemDetailModal({
   const [newPreviews, setNewPreviews] = useState([]);
   const fileInputRef = useRef(null);
 
+  // If the item's category isn't in our list it was entered as "Other"
+  const isCustomCategory =
+    item.category && !CATEGORIES.includes(item.category);
+
   const [form, setForm] = useState({
     item_name: item.item_name || "",
     description: item.description || "",
     location: item.location || "",
-    category: item.category || "",
+    category: isCustomCategory ? "Other" : item.category || "",
   });
+
+  const [customCategory, setCustomCategory] = useState(
+    isCustomCategory ? item.category : "",
+  );
+
+  // Date state — Date objects for Calendar, initialized from item
+  const [dateFrom, setDateFrom] = useState(() =>
+    item.date_lost_from ? new Date(item.date_lost_from) : null,
+  );
+  const [dateTo, setDateTo] = useState(() =>
+    item.date_lost_to ? new Date(item.date_lost_to) : null,
+  );
+  const [date, setDate] = useState(() =>
+    item.date_found ? new Date(item.date_found) : null,
+  );
+
+  // Popover open state
+  const [dateFromOpen, setDateFromOpen] = useState(false);
+  const [dateToOpen, setDateToOpen] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -114,12 +163,19 @@ function ItemDetailModal({
         addPaths = uploadData.paths;
       }
 
+      const resolvedCategory =
+        form.category === "Other" ? customCategory.trim() : form.category;
+
       const res = await apiFetch(`/items/${item.id}`, {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          category: resolvedCategory,
+          date_lost_from: isLost ? (dateFrom ? dateFrom.toISOString() : null) : undefined,
+          date_lost_to: isLost ? (dateTo ? dateTo.toISOString() : null) : undefined,
+          date_found: !isLost ? (date ? date.toISOString() : null) : undefined,
           add_image_paths: addPaths,
           remove_image_paths: removedPaths,
         }),
@@ -423,11 +479,13 @@ function ItemDetailModal({
               <p className="text-xs text-text-muted font-semibold">Date</p>
               <p>
                 {isLost
-                  ? item.date_lost_from
-                    ? new Date(item.date_lost_from).toLocaleDateString()
+                  ? dateFrom
+                    ? dateTo
+                      ? `${format(dateFrom, "MMM d, yyyy")} – ${format(dateTo, "MMM d, yyyy")}`
+                      : format(dateFrom, "MMM d, yyyy")
                     : "—"
-                  : item.date_found
-                    ? new Date(item.date_found).toLocaleDateString()
+                  : date
+                    ? format(date, "MMM d, yyyy")
                     : "—"}
               </p>
             </div>
@@ -456,12 +514,33 @@ function ItemDetailModal({
               <label className="text-xs font-semibold text-text-muted">
                 Category
               </label>
-              <input
-                name="category"
+              <Select
                 value={form.category}
-                onChange={handleChange}
-                className={inputClass}
-              />
+                onValueChange={(val) =>
+                  setForm((prev) => ({ ...prev, category: val }))
+                }
+              >
+                <SelectTrigger className="h-auto p-2.5 rounded-xl bg-bg-raised border border-border-strong ring-secondary-muted focus:ring-2 focus-visible:ring-2 text-sm hover:bg-secondary-soft transition-all duration-200">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {form.category === "Other" && (
+                <input
+                  type="text"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  placeholder="Describe the category..."
+                  maxLength={50}
+                  className={inputClass}
+                />
+              )}
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs font-semibold text-text-muted">
@@ -486,6 +565,100 @@ function ItemDetailModal({
                 className={inputClass}
               />
             </div>
+
+            {/* Date fields */}
+            {isLost ? (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-text-muted">
+                  Date Lost
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-text-muted">From</label>
+                    <Popover open={dateFromOpen} onOpenChange={setDateFromOpen}>
+                      <PopoverTrigger asChild>
+                        <button className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl bg-bg-raised border border-border-strong hover:bg-secondary-soft text-sm cursor-pointer transition-all duration-200">
+                          <span className={dateFrom ? "text-text" : "text-text-muted"}>
+                            {dateFrom ? format(dateFrom, "MMM d, yyyy") : "Pick a date"}
+                          </span>
+                          <CalendarIcon className="w-4 h-4 text-text-muted" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={dateFrom}
+                          onSelect={(d) => {
+                            setDateFrom(d);
+                            setDateFromOpen(false);
+                            if (dateTo && d && dateTo < d) setDateTo(null);
+                          }}
+                          disabled={(d) => d > new Date()}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-text-muted">
+                      To (optional)
+                    </label>
+                    <Popover open={dateToOpen} onOpenChange={setDateToOpen}>
+                      <PopoverTrigger asChild>
+                        <button className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl bg-bg-raised border border-border-strong hover:bg-secondary-soft text-sm cursor-pointer transition-all duration-200">
+                          <span className={dateTo ? "text-text" : "text-text-muted"}>
+                            {dateTo ? format(dateTo, "MMM d, yyyy") : "Pick a date"}
+                          </span>
+                          <CalendarIcon className="w-4 h-4 text-text-muted" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={dateTo}
+                          onSelect={(d) => {
+                            setDateTo(d);
+                            setDateToOpen(false);
+                          }}
+                          disabled={(d) =>
+                            d > new Date() || (dateFrom ? d < dateFrom : false)
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-text-muted">
+                  Date Found
+                </label>
+                <Popover open={dateOpen} onOpenChange={setDateOpen}>
+                  <PopoverTrigger asChild>
+                    <button className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl bg-bg-raised border border-border-strong hover:bg-secondary-soft text-sm cursor-pointer transition-all duration-200">
+                      <span className={date ? "text-text" : "text-text-muted"}>
+                        {date ? format(date, "MMM d, yyyy") : "Pick a date"}
+                      </span>
+                      <CalendarIcon className="w-4 h-4 text-text-muted" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={date}
+                      onSelect={(d) => {
+                        setDate(d);
+                        setDateOpen(false);
+                      }}
+                      disabled={(d) => d > new Date()}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
           </div>
         )}
 
@@ -539,6 +712,16 @@ function ItemDetailModal({
                     setEditing(false);
                     setError("");
                     resetImageState();
+                    setForm({
+                      item_name: item.item_name || "",
+                      description: item.description || "",
+                      location: item.location || "",
+                      category: isCustomCategory ? "Other" : item.category || "",
+                    });
+                    setCustomCategory(isCustomCategory ? item.category : "");
+                    setDateFrom(item.date_lost_from ? new Date(item.date_lost_from) : null);
+                    setDateTo(item.date_lost_to ? new Date(item.date_lost_to) : null);
+                    setDate(item.date_found ? new Date(item.date_found) : null);
                   }}
                   className="flex-1 px-4 py-2 rounded-xl border border-border hover:bg-primary-muted text-sm cursor-pointer transition-all duration-200"
                 >
