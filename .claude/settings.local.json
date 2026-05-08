@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npx eslint *)",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\fortu\\\\LostLink\\\\csdp_490\" -Recurse -Name)"
     ]
   }
 }

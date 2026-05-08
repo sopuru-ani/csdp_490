@@ -176,7 +176,7 @@ def review_match(
 
 @router.get("/items/{item_id}/matches")
 @limiter.limit("5/minute")
-@limiter.limit("30/day")
+#@limiter.limit("30/day")
 async def find_matches(
     request: Request,
     item_id: str,

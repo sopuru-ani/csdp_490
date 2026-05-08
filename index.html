@@ -12,6 +12,12 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
 
   <link rel="manifest" href="/manifest.json" />
+  <script>
+    try {
+      var a = localStorage.getItem("settings.appearance");
+      if (a && JSON.parse(a).darkMode) document.documentElement.classList.add("dark");
+    } catch (_) {}
+  </script>
 </head>
 
 <body>
