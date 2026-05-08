@@ -27,11 +27,8 @@ Admin-only:
 import html
 import os
 import json
-import base64
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
+import resend
 from pywebpush import webpush, WebPushException
 from dotenv import load_dotenv
 
@@ -54,29 +51,31 @@ def decode_vapid_key(key_b64):
 _VAPID_PRIVATE_KEY   = decode_vapid_key(_VAPID_PRIVATE_KEY_B64)
 _VAPID_CLAIMS_EMAIL  = os.getenv("VAPID_CLAIMS_EMAIL")
 
-# ── Gmail SMTP ────────────────────────────────────────────────────────────────
+# ── Resend ────────────────────────────────────────────────────────────────────
 
-_GMAIL_ADDRESS      = os.getenv("GMAIL_ADDRESS")
-_GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
-_FRONTEND_URL       = os.getenv("FRONTEND_URL", "http://localhost:5173")
+_RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+_GMAIL_ADDRESS  = os.getenv("GMAIL_ADDRESS")   # used as display "from" address
+_FRONTEND_URL   = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+if _RESEND_API_KEY:
+    resend.api_key = _RESEND_API_KEY
 
 
 # ── Email helpers ─────────────────────────────────────────────────────────────
 
 def _send_email(to_addr: str, subject: str, html_body: str) -> None:
-    """Send a single HTML email via Gmail SMTP. Never raises."""
-    if not _GMAIL_ADDRESS or not _GMAIL_APP_PASSWORD:
-        print("[EMAIL] Gmail not configured — skipping")
+    """Send a single HTML email via Resend. Never raises."""
+    if not _RESEND_API_KEY:
+        print("[EMAIL] Resend not configured — skipping")
         return
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"]    = f"LostLink <{_GMAIL_ADDRESS}>"
-        msg["To"]      = to_addr
-        msg.attach(MIMEText(html_body, "html"))
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-            smtp.login(_GMAIL_ADDRESS, _GMAIL_APP_PASSWORD)
-            smtp.sendmail(_GMAIL_ADDRESS, to_addr, msg.as_string())
+        from_addr = f"LostLink <{_GMAIL_ADDRESS}>" if _GMAIL_ADDRESS else "LostLink <onboarding@resend.dev>"
+        resend.Emails.send({
+            "from":    from_addr,
+            "to":      [to_addr],
+            "subject": subject,
+            "html":    html_body,
+        })
         print(f"[EMAIL] Sent '{subject}' to {to_addr}")
     except Exception as e:
         print(f"[EMAIL] send error: {repr(e)}")

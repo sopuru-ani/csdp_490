@@ -18,9 +18,10 @@ import asyncio
 from datetime import datetime
 from typing import Optional
 
+import base64
+
 import httpx
-import google.generativeai as genai
-from google.generativeai import types
+from groq import Groq
 from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -36,8 +37,7 @@ import routers.notifications as notifications
 
 load_dotenv()
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-_gemini = genai.GenerativeModel("gemini-2.5-flash-lite")
+_groq = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 router = APIRouter(tags=["matches"])
 
@@ -265,9 +265,9 @@ Each entry must have:
 Respond ONLY with valid JSON. No markdown, no code fences, no extra text.
 If no reasonable matches exist, return: []"""
 
-        # 4. Fetch source item images
-        contents      = []
-        images_added  = 0
+        # 4. Fetch source item images and encode as base64 for Groq vision
+        image_parts  = []
+        images_added = 0
 
         async with httpx.AsyncClient(timeout=10) as http:
             for path in image_paths[:3]:
@@ -275,17 +275,23 @@ If no reasonable matches exist, return: []"""
                     signed  = db_supabase.storage.from_("item-images").create_signed_url(path=path, expires_in=300)
                     img_res = await http.get(signed["signedURL"])
                     if img_res.status_code == 200:
-                        mime = img_res.headers.get("content-type", "image/jpeg").split(";")[0]
-                        contents.append(types.Part.from_bytes(data=img_res.content, mime_type=mime))
+                        mime     = img_res.headers.get("content-type", "image/jpeg").split(";")[0]
+                        b64_data = base64.b64encode(img_res.content).decode("utf-8")
+                        image_parts.append({
+                            "type":      "image_url",
+                            "image_url": {"url": f"data:{mime};base64,{b64_data}"},
+                        })
                         images_added += 1
                 except Exception as e:
                     print("IMAGE FETCH ERROR:", repr(e))
 
-        contents.append(prompt)
-
-        # 5. Call Gemini
-        response = _gemini.generate_content(contents)
-        raw      = response.text.strip()
+        # 5. Call Groq
+        content = image_parts + [{"type": "text", "text": prompt}] if image_parts else prompt
+        response = _groq.chat.completions.create(
+            model="meta-llama/llama-4-scout-17b-16e-instruct",
+            messages=[{"role": "user", "content": content}],
+        )
+        raw = response.choices[0].message.content.strip()
 
         # 6. Parse JSON response
         try:
@@ -297,7 +303,7 @@ If no reasonable matches exist, return: []"""
                 cleaned = cleaned.strip()
             match_results = json.loads(cleaned)
         except json.JSONDecodeError:
-            print("GEMINI RAW RESPONSE:", raw)
+            print("GROQ RAW RESPONSE:", raw)
             raise HTTPException(status_code=500, detail="AI returned an unexpected response format.")
 
         # 7. Enrich matches with full item data + signed URLs
