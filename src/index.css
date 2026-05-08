@@ -147,11 +147,11 @@
   --color-secondary: #fbbf24;
   --color-secondary-soft: #f0a627;
   --color-secondary-hover: #fcd34d;
-  --color-secondary-muted: #f0a627;
+  --color-secondary-muted: #a0701d;
 
   /* --- Backgrounds (clearly layered) --- */
   --color-bg: #111827;
-  --color-bg-raised: #404041;
+  --color-bg-raised: #1a1919;
   --color-bg-sunken: #0d1520;
   --color-bg-overlay: #1c2638ee;
 

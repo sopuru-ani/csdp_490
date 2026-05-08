@@ -322,6 +322,33 @@ If no reasonable matches exist, return: []"""
                     "item":   item_data,
                 })
 
+        # 8. Auto-persist AI matches ≥40 to the matches table, skipping duplicates
+        if enriched_matches:
+            existing_resp = db_supabase.table("matches") \
+                .select("matched_item_id") \
+                .eq("source_item_id", item_id) \
+                .in_("status", ["pending", "approved"]) \
+                .execute()
+
+            already_saved = {r["matched_item_id"] for r in (existing_resp.data or [])}
+
+            to_insert = [
+                {
+                    "source_item_id":   item_id,
+                    "matched_item_id":  em["item"]["id"],
+                    "similarity_score": em["score"] / 100,
+                    "reason":           em["reason"],
+                    "status":           "pending",
+                    "requested_by":     current_user["id"],
+                }
+                for em in enriched_matches
+                if em["item"]["id"] not in already_saved
+            ]
+
+            if to_insert:
+                db_supabase.table("matches").insert(to_insert).execute()
+                notifications.admin_match_pending(item_id)
+
         # Notify the user on their other devices if matches were found
         if enriched_matches:
             asyncio.create_task(

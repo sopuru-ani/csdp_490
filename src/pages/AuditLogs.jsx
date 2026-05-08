@@ -155,7 +155,7 @@ function LogRow({ log, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="bg-white rounded-lg border border-gray-200 px-4 py-3 flex items-center gap-4 w-full text-left hover:border-secondary hover:shadow-sm transition-all duration-200 cursor-pointer overflow-x-hidden"
+      className="bg-bg-raised rounded-lg border border-gray-200 px-4 py-3 flex items-center gap-4 w-full text-left hover:border-secondary hover:shadow-sm transition-all duration-200 cursor-pointer overflow-x-hidden"
     >
       <span
         className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${meta.color}`}
