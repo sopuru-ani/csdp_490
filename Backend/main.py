@@ -25,7 +25,7 @@ from dotenv import load_dotenv
 
 
 from routers.dependencies import limiter
-from routers import auth, items, matches, admin, messaging, users, pushsubs, notiflist, settings
+from routers import auth, items, matches, admin, messaging, users, pushsubs, notiflist, settings, issues
 
 load_dotenv()
 
@@ -65,6 +65,7 @@ app.include_router(users.router)
 app.include_router(pushsubs.router)
 app.include_router(notiflist.router)
 app.include_router(settings.router)
+app.include_router(issues.router, prefix="/issues", tags=["issues"])
 
 # ── Health check ──────────────────────────────────────────────────────────────
 

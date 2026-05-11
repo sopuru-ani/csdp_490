@@ -1,0 +1,90 @@
+LOSTLINK — SESSION CHANGES
+==========================
+
+1. IMAGE FETCH FIX (Backend/routers/matches.py)
+   - Removed: from google.generativeai import types
+   - Fixed IMAGE FETCH ERROR: AttributeError — replaced types.Part.from_bytes(...)
+     with plain dict {"mime_type": mime, "data": img_res.content}
+
+2. GEMINI → GROQ SWAP (Backend/routers/matches.py)
+   - Removed: import google.generativeai as genai
+   - Added: import base64, from groq import Groq
+   - Replaced Gemini client init with: _groq = Groq(api_key=os.getenv("GROQ_API_KEY"))
+   - Model: meta-llama/llama-4-scout-17b-16e-instruct
+   - Images now base64-encoded as data: URLs in Groq's image_url content format
+   - Response extracted via .choices[0].message.content instead of .text
+   - Added groq to Backend/requirements.txt
+
+3. SMTP → RESEND SWAP (Backend/routers/notifications.py)
+   - Removed: import smtplib, MIMEMultipart, MIMEText, base64
+   - Added: import resend
+   - Replaced _GMAIL_APP_PASSWORD config with _RESEND_API_KEY
+   - resend.api_key set once at module load
+   - _send_email() now calls resend.Emails.send() instead of smtplib.SMTP_SSL
+   - From address still uses GMAIL_ADDRESS env var for display name
+   - Forgot-password flow (auth.py) intentionally untouched — uses Supabase reset
+   - Added resend to Backend/requirements.txt
+
+4. REPORT ISSUE FEATURE
+   4a. Backend/routers/issues.py (NEW FILE)
+       - POST /issues/ — multipart form, uploads to issue-attachments bucket,
+         inserts into issue_reports + issue_report_attachments, returns ticket_number
+         Rate limited: 5/minute
+       - GET /issues/ — current user's issues (id, ticket_number, issue_type, status, created_at)
+       - GET /issues/{issue_id} — full detail owned by current user with attachments
+
+   4b. Backend/routers/admin.py (additions)
+       - GET /admin/issues — all issues with optional status/issue_type filters
+         (reporter hidden if is_anonymous for non-admin view)
+       - PATCH /admin/issues/{issue_id} — update status/admin_notes,
+         auto-sets resolved_at/resolved_by when status = "resolved"
+
+   4c. Backend/main.py
+       - Imported issues router
+       - Registered: app.include_router(issues.router, prefix="/issues", tags=["issues"])
+
+   4d. src/pages/ReportIssuePage.jsx (NEW FILE)
+       - Issue type segmented control (5 types)
+       - Conditional fields: conversation dropdown + user ref (abuse_harassment),
+         item ID + misleading reason checkboxes (inappropriate_content),
+         affected page dropdown (bug), account subtype radio (account_issue)
+       - Description textarea with min-20-char validation
+       - Image attachments (up to 5, for applicable types)
+       - Anonymous toggle
+       - Submit via FormData to POST /issues/
+       - Success state shows ticket number
+
+   4e. src/routes/AppRoutes.jsx
+       - Added /report-issue route inside Overview wrapper
+
+5. ADMIN TICKETS PAGE
+   5a. Backend/routers/admin.py (additions)
+       - GET /admin/tickets — full list with global status counts + per-ticket
+         attachment counts from issue_attachments (source_type='issue_report')
+         Optional query params: status, issue_type
+         Reporter always shown to admin regardless of is_anonymous flag
+       - GET /admin/tickets/{ticket_id} — full detail: signed attachment URLs
+         (issue-attachments bucket), referenced user/item resolved, resolver name
+       - PATCH /admin/tickets/{ticket_id} — status + admin_notes update,
+         auto-sets resolved_at/resolved_by on resolved/dismissed,
+         audit logged as ticket_status_update with old_status/new_status/admin_notes
+
+   5b. src/pages/AdminTicketsPage.jsx (NEW FILE)
+       - Stats strip: 4 clickable stat cards (Open/Under Review/Resolved/Dismissed)
+       - Filter bar: status pills + issue type dropdown (client-side filtering)
+       - Ticket table with skeleton loader, color-coded type/status badges
+       - Anonymous rows shown as "Anonymous*" with native tooltip
+       - Slide-in detail drawer from right with overlay
+       - Drawer: reporter info, all conditional reference fields,
+         misleading reason tags, attachment thumbnail grid, lightbox,
+         resolved_at/resolver display, admin notes textarea,
+         status dropdown, Save button with spinner
+       - Auth guard: redirects non-admins to /dashboard
+       - All API calls via apiFetch
+
+   5c. src/routes/AppRoutes.jsx
+       - Added /admin/tickets route inside Overview wrapper
+
+NOTE: issue_attachments (source_id / source_type) used in admin ticket endpoints;
+issues.py user-facing router inserts into issue_report_attachments (issue_report_id).
+Reconcile table name in DB or update issues.py insert if using one unified table.
