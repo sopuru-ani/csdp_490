@@ -8,6 +8,7 @@ import {
   Settings,
   CircleQuestionMark,
   Megaphone,
+  Ticket,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { apiFetch } from "../lib/api";
@@ -18,7 +19,9 @@ function Sidebar({ collapsed, setCollapsed }) {
   useEffect(() => {
     apiFetch("/auth/userchecker")
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => { if (data) setUser(data); })
+      .then((data) => {
+        if (data) setUser(data);
+      })
       .catch(() => {});
   }, []);
 
@@ -117,8 +120,31 @@ function Sidebar({ collapsed, setCollapsed }) {
             icon={<Megaphone className="w-5 h-5" />}
             label="Report Issue"
             collapsed={collapsed}
+            href="/report-issue"
+            onItemSelected={() => setCollapsed(true)}
           />
         </div>
+
+        {user?.is_admin && (
+          <div className="flex flex-col p-2 gap-1">
+            {collapsed ? (
+              <p className="font-bold text-md transition-opacity delay-75 text-center">
+                A
+              </p>
+            ) : (
+              <p className="font-bold text-md transition-opacity delay-75">
+                ADMIN
+              </p>
+            )}
+            <NavItem
+              icon={<Ticket className="w-5 h-5" />}
+              label="Tickets"
+              collapsed={collapsed}
+              href="/admin/tickets"
+              onItemSelected={() => setCollapsed(true)}
+            />
+          </div>
+        )}
       </div>
 
       {/* Footer */}

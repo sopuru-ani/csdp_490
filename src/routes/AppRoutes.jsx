@@ -13,6 +13,8 @@ import AdminReports from "@/pages/AdminReports";
 import Settings from "@/pages/Settings";
 import ConversationPage from "@/pages/ConversationPage";
 import Notifications from "@/pages/Notifications";
+import ReportIssuePage from "@/pages/ReportIssuePage";
+import AdminTicketsPage from "@/pages/AdminTicketsPage";
 import DevMap from "@/pages/DevMap";
 import Dev from "@/pages/Dev";
 
@@ -40,6 +42,8 @@ function AppRoutes() {
         <Route path="/admin/audit-logs" element={<AuditLogs />} />
         <Route path="/admin/reports" element={<AdminReports />} />
         <Route path="/notifications" element={<Notifications />} />
+        <Route path="/report-issue" element={<ReportIssuePage />} />
+        <Route path="/admin/tickets" element={<AdminTicketsPage />} />
       </Route>
       <Route path="/dev" element={<Dev />} />
       <Route path="/dev/map" element={<DevMap />} />
