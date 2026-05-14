@@ -1,0 +1,25 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Page-1" id="ONWvpqLxdMP6FXV15cmm">
+    <mxGraphModel grid="1" page="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="upo_Erw6mBXReISTIrCi-1" parent="1" style="text;whiteSpace=wrap;html=1;" value="&#xa;  &#xa;    &#xa;      &#xa;        &#xa;        &#xa;        &#xa;          &#xa;        &#xa;        &#xa;          &#xa;        &#xa;      &#xa;    &#xa;  &#xa;" vertex="1">
+          <mxGeometry height="240" width="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ujUU2GMJd6y8fenF7X4b-1" parent="1" style="swimlane;startSize=26;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;align=center;" value="User" vertex="1">
+          <mxGeometry height="240" width="300" x="30" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="ujUU2GMJd6y8fenF7X4b-2" parent="ujUU2GMJd6y8fenF7X4b-1" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=8;overflow=hidden;rotatable=0;fontSize=11;" value="- id : UUID&#xa;- email : String&#xa;- is_admin : Boolean&#xa;- display_name : String&#xa;- created_at : DateTime" vertex="1">
+          <mxGeometry height="102" width="300" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ujUU2GMJd6y8fenF7X4b-3" parent="ujUU2GMJd6y8fenF7X4b-1" style="line;strokeColor=#6c8ebf;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="10" width="300" y="128" as="geometry" />
+        </mxCell>
+        <mxCell id="ujUU2GMJd6y8fenF7X4b-4" parent="ujUU2GMJd6y8fenF7X4b-1" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=8;overflow=hidden;rotatable=0;fontSize=11;" value="+ register(email, password) : User&#xa;+ login(email, password) : Session&#xa;+ logout() : void&#xa;+ changePassword(newPassword) : void&#xa;+ updateProfile(data) : User" vertex="1">
+          <mxGeometry height="102" width="300" y="138" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

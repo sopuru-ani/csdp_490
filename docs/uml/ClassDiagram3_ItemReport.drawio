@@ -1,0 +1,22 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="ItemReport" id="AVCxrj10HHaqvs3gdo2N">
+    <mxGraphModel grid="1" page="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="IJvhorCaj6UZeORM0Q3l-1" parent="1" style="swimlane;startSize=26;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;align=center;" value="ItemReport" vertex="1">
+          <mxGeometry height="312" width="300" x="80" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="IJvhorCaj6UZeORM0Q3l-2" parent="IJvhorCaj6UZeORM0Q3l-1" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=8;overflow=hidden;rotatable=0;fontSize=11;" value="- id : UUID&#xa;- user_id : UUID&#xa;- item_type : Enum {lost, found}&#xa;- category : String&#xa;- description : String&#xa;- location : String&#xa;- status : Enum {open, closed}&#xa;- images : List&lt;String&gt;&#xa;- created_at : DateTime" vertex="1">
+          <mxGeometry height="174" width="300" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="IJvhorCaj6UZeORM0Q3l-3" parent="IJvhorCaj6UZeORM0Q3l-1" style="line;strokeColor=#82b366;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="10" width="300" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="IJvhorCaj6UZeORM0Q3l-4" parent="IJvhorCaj6UZeORM0Q3l-1" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=8;overflow=hidden;rotatable=0;fontSize=11;" value="+ submit(data) : ItemReport&#xa;+ delete() : void&#xa;+ close() : void&#xa;+ getMatches() : List&lt;MatchCandidate&gt;&#xa;+ uploadImages(files) : List&lt;String&gt;" vertex="1">
+          <mxGeometry height="102" width="300" y="210" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

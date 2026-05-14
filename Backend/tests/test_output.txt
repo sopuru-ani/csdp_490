@@ -1,0 +1,30 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.4, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\fortu\LostLink\csdp_490\Backend\venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\fortu\LostLink\csdp_490\Backend
+plugins: anyio-4.12.1, asyncio-1.3.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 8 items
+
+tests/test_auth_helpers.py::test_is_locked_when_no_row PASSED            [ 12%]
+tests/test_auth_helpers.py::test_is_locked_when_locked_until_in_future PASSED [ 25%]
+tests/test_auth_helpers.py::test_is_locked_when_lock_expired PASSED      [ 37%]
+tests/test_auth_helpers.py::test_is_locked_when_locked_until_is_none PASSED [ 50%]
+tests/test_auth_helpers.py::test_effective_count_no_row PASSED           [ 62%]
+tests/test_auth_helpers.py::test_effective_count_normal PASSED           [ 75%]
+tests/test_auth_helpers.py::test_effective_count_resets_after_expired_lock PASSED [ 87%]
+tests/test_auth_helpers.py::test_effective_count_still_locked PASSED     [100%]
+
+============================== warnings summary ===============================
+venv\Lib\site-packages\slowapi\extension.py:717
+venv\Lib\site-packages\slowapi\extension.py:717
+venv\Lib\site-packages\slowapi\extension.py:717
+venv\Lib\site-packages\slowapi\extension.py:717
+venv\Lib\site-packages\slowapi\extension.py:717
+venv\Lib\site-packages\slowapi\extension.py:717
+venv\Lib\site-packages\slowapi\extension.py:717
+  C:\Users\fortu\LostLink\csdp_490\Backend\venv\Lib\site-packages\slowapi\extension.py:717: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 8 passed, 7 warnings in 6.50s ========================

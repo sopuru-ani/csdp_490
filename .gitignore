@@ -35,3 +35,5 @@ __pycache__/
 
 # Environment variables
 .env
+project_context_claude.md
+PROJECT_CONTEXT.md
